@@ -59,6 +59,46 @@ async def poll_rss_due() -> None:
             db.refresh(source)
 
 
+async def poll_watch_sources() -> None:
+    """Poll enabled GitHub / Hugging Face watch sources (low frequency)."""
+    with SessionLocal() as db:
+        sources = db.scalars(
+            select(Source).where(
+                Source.enabled.is_(True),
+                Source.source_type.in_(
+                    [
+                        "github_org",
+                        "github_repo",
+                        "hf_org_models",
+                        "hf_org_datasets",
+                        "hf_org_spaces",
+                    ]
+                ),
+            )
+        ).all()
+        now = utcnow()
+        for source in sources:
+            interval = source.poll_interval_seconds or 3600
+            last = last_activity_at(source)
+            if last and (now - last).total_seconds() < interval:
+                continue
+            if source.platform == "github":
+                runtime = ((source.cursor_json or {}).get("runtime")) or {}
+                remaining = runtime.get("rate_limit_remaining")
+                if isinstance(remaining, int) and remaining < 10:
+                    log.warning(
+                        "Skipping %s due to low GitHub rate limit (%s)",
+                        source.name,
+                        remaining,
+                    )
+                    continue
+            try:
+                await poll_source(db, source)
+            except Exception:  # noqa: BLE001
+                log.exception("Watch source poll failed for %s", source.name)
+            db.refresh(source)
+
+
 def start_scheduler() -> None:
     if not settings.scheduler_enabled:
         log.info("Scheduler disabled")
@@ -88,6 +128,14 @@ def start_scheduler() -> None:
         poll_rss_due,
         IntervalTrigger(seconds=60),
         id="rss_due",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+    scheduler.add_job(
+        poll_watch_sources,
+        IntervalTrigger(seconds=300),
+        id="watch_sources",
         replace_existing=True,
         max_instances=1,
         coalesce=True,

@@ -189,7 +189,7 @@ async def test_hn_topstories_rank_watch_model(monkeypatch):
     events = await adapter.fetch(source)
     assert len(events) == 3
     assert [e.metadata["rank"] for e in events] == [1, 2, 3]
-    assert all(e.metadata["feed"] == "topstories" for e in events)
+    assert all(e.metadata["feeds_seen"] == ["topstories"] for e in events)
     cursor = source._pending_cursor
     assert cursor["feeds"]["topstories"]["mode"] == "rank_watch"
     assert cursor["feeds"]["topstories"]["watched_ids"] == [101, 102, 103]

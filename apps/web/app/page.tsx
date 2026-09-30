@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   Bar,
@@ -53,7 +54,9 @@ export default function HomePage() {
   return (
     <main>
       <h1>Dashboard</h1>
-      <p className="sub">Source status and recent collected evidence. Candidates arrive in Phase 2.</p>
+      <p className="sub">
+        Source status, tracked entities, and recent evidence. Discovery is descriptive — not hype scoring.
+      </p>
 
       <section className="grid grid-4" style={{ marginBottom: 16 }}>
         <div className="panel">
@@ -69,8 +72,11 @@ export default function HomePage() {
           <div className="stat-label">Error</div>
         </div>
         <div className="panel">
-          <div className="stat" style={{ color: "var(--disabled)" }}>{data.disabled}</div>
-          <div className="stat-label">Disabled</div>
+          <div className="stat" style={{ color: "var(--disabled)" }}>
+            {data.disabled}
+            {data.rate_limited ? ` / RL ${data.rate_limited}` : ""}
+          </div>
+          <div className="stat-label">Disabled / Rate Limited</div>
         </div>
       </section>
 
@@ -92,9 +98,25 @@ export default function HomePage() {
           </div>
         </div>
         <div className="panel">
-          <h2>Candidates</h2>
-          <p className="empty">
-            No hype candidates yet. Candidate engine arrives in Phase 2.
+          <h2>Tracked Entities</h2>
+          {Object.entries(data.tracked_entities || {}).map(([k, v]) => (
+            <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span className="muted">{k}</span>
+              <strong>{v}</strong>
+            </div>
+          ))}
+          <h2 style={{ marginTop: 18 }}>Recent derivative activity (24h)</h2>
+          {Object.entries(data.recent_derivative_activity || {}).map(([k, v]) => (
+            <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span className="muted">{k}</span>
+              <strong>{v}</strong>
+            </div>
+          ))}
+          <p className="empty" style={{ marginTop: 12 }}>
+            No hype candidates yet. Candidate engine arrives later.
+          </p>
+          <p>
+            <Link href="/discovery">Open Discovery →</Link>
           </p>
         </div>
       </section>
@@ -102,7 +124,7 @@ export default function HomePage() {
       <section className="panel" style={{ marginTop: 16 }}>
         <h2>Recent events</h2>
         {data.recent_events.length === 0 ? (
-          <p className="empty">No events yet. Wait for the scheduler or POST /api/system/poll-all.</p>
+          <p className="empty">No events yet.</p>
         ) : (
           <div className="table-wrap">
             <table className="data">
