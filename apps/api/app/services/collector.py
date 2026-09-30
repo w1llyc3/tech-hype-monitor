@@ -95,9 +95,10 @@ def _record_github_entity_metrics(
     metrics = {
         "stars": float(meta["stars"]) if meta.get("stars") is not None else None,
         "forks": float(meta["forks"]) if meta.get("forks") is not None else None,
-        "watchers": float(meta["watchers"]) if meta.get("watchers") is not None else None,
         "open_issues": float(meta["open_issues"]) if meta.get("open_issues") is not None else None,
     }
+    if meta.get("subscribers") is not None:
+        metrics["subscribers"] = float(meta["subscribers"])
     record_metrics(db, entity, metrics)
 
 

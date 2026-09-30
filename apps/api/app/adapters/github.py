@@ -61,6 +61,24 @@ def _repo_event(repo: dict[str, Any]) -> NormalizedRawEvent:
     payload = f"{full_name}|{repo.get('updated_at')}|{repo.get('stargazers_count')}|{repo.get('pushed_at')}"
     content_hash = hashlib.sha256(payload.encode("utf-8")).hexdigest()
     owner = repo.get("owner") or {}
+    meta: dict[str, Any] = {
+        "owner": owner.get("login"),
+        "name": repo.get("name"),
+        "description": repo.get("description"),
+        "language": repo.get("language"),
+        "stars": repo.get("stargazers_count"),
+        "forks": repo.get("forks_count"),
+        "open_issues": repo.get("open_issues_count"),
+        "created_at": repo.get("created_at"),
+        "updated_at": repo.get("updated_at"),
+        "pushed_at": repo.get("pushed_at"),
+        "topics": repo.get("topics") or [],
+        "default_branch": repo.get("default_branch"),
+        "archived": repo.get("archived"),
+    }
+    # Only record subscribers when explicitly present (repo-detail). Never use watchers_count.
+    if "subscribers_count" in repo and repo.get("subscribers_count") is not None:
+        meta["subscribers"] = repo.get("subscribers_count")
     return NormalizedRawEvent(
         platform="github",
         external_id=full_name,
@@ -71,22 +89,7 @@ def _repo_event(repo: dict[str, Any]) -> NormalizedRawEvent:
         raw_text=repo.get("description"),
         content_hash=content_hash,
         event_type="github_repo",
-        metadata={
-            "owner": owner.get("login"),
-            "name": repo.get("name"),
-            "description": repo.get("description"),
-            "language": repo.get("language"),
-            "stars": repo.get("stargazers_count"),
-            "forks": repo.get("forks_count"),
-            "watchers": repo.get("subscribers_count", repo.get("watchers_count")),
-            "open_issues": repo.get("open_issues_count"),
-            "created_at": repo.get("created_at"),
-            "updated_at": repo.get("updated_at"),
-            "pushed_at": repo.get("pushed_at"),
-            "topics": repo.get("topics") or [],
-            "default_branch": repo.get("default_branch"),
-            "archived": repo.get("archived"),
-        },
+        metadata=meta,
     )
 
 
@@ -198,7 +201,7 @@ async def search_github_repos(
     async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
         resp = await client.get(
             f"{GITHUB_API}/search/repositories",
-            params={"q": q, "sort": "best-match", "order": "desc", "per_page": limit},
+            params={"q": q, "per_page": limit},
             headers=_github_headers(),
         )
         runtime = _parse_rate_limit(resp)

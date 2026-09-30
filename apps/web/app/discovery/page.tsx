@@ -2,11 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import {
-  discoverGithub,
-  discoverHf,
-  listEntities,
-} from "@/lib/api";
+import { discoverGithub, discoverHf } from "@/lib/api";
 
 type Tab = "github" | "models" | "spaces" | "datasets";
 
@@ -16,7 +12,6 @@ export default function DiscoveryPage() {
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [entityIds, setEntityIds] = useState<Record<string, number>>({});
 
   const columns = useMemo(() => {
     if (tab === "github") {
@@ -29,21 +24,9 @@ export default function DiscoveryPage() {
     setLoading(true);
     setError(null);
     try {
-      let data: Record<string, unknown>[] = [];
-      if (tab === "github") {
-        data = await discoverGithub(q);
-      } else {
-        data = await discoverHf(tab, q);
-      }
+      const data =
+        tab === "github" ? await discoverGithub(q) : await discoverHf(tab, q);
       setRows(data);
-      // Resolve persisted entity ids for detail links.
-      const platform = tab === "github" ? "github" : "huggingface";
-      const entities = await listEntities({ platform, q, limit: "100" });
-      const map: Record<string, number> = {};
-      for (const e of entities) {
-        map[e.external_id] = e.id;
-      }
-      setEntityIds(map);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setRows([]);
@@ -120,11 +103,15 @@ export default function DiscoveryPage() {
             ) : tab === "github" ? (
               rows.map((r) => {
                 const ext = String(r.external_id || "");
-                const id = entityIds[ext];
+                const entityId = r.entity_id as number | undefined;
                 return (
                   <tr key={ext}>
                     <td>
-                      {id ? <Link href={`/entities/${id}`}>{String(r.name || ext)}</Link> : String(r.name || ext)}
+                      {entityId ? (
+                        <Link href={`/entities/${entityId}`}>{String(r.name || ext)}</Link>
+                      ) : (
+                        String(r.name || ext)
+                      )}
                     </td>
                     <td>{String(r.owner || "—")}</td>
                     <td>{String(r.description || "—").slice(0, 120)}</td>
@@ -144,18 +131,20 @@ export default function DiscoveryPage() {
             ) : (
               rows.map((r) => {
                 const ext = String(r.external_id || r.repo_id || "");
-                const id = entityIds[ext];
+                const entityId = r.entity_id as number | undefined;
                 return (
                   <tr key={ext}>
                     <td>
-                      {id ? <Link href={`/entities/${id}`}>{ext}</Link> : ext}
+                      {entityId ? <Link href={`/entities/${entityId}`}>{ext}</Link> : ext}
                     </td>
                     <td>{String(r.author || "—")}</td>
                     <td>{String(r.entity_type || tab)}</td>
                     <td>{String(r.likes ?? "—")}</td>
                     <td>{r.downloads == null ? "—" : String(r.downloads)}</td>
                     <td className="mono">{String(r.last_modified || "—").slice(0, 19)}</td>
-                    <td>{Array.isArray(r.tags) ? (r.tags as string[]).slice(0, 4).join(", ") : "—"}</td>
+                    <td>
+                      {Array.isArray(r.tags) ? (r.tags as string[]).slice(0, 4).join(", ") : "—"}
+                    </td>
                     <td>
                       <a href={String(r.url || "#")} target="_blank" rel="noreferrer">
                         link
