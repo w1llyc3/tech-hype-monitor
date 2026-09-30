@@ -1,25 +1,63 @@
-from datetime import datetime
-from typing import Optional
+from datetime import datetime, timedelta
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.schemas import (
+    AcceptSignalIn,
+    AccountListItemOut,
     AccountOut,
+    AccountStatsOut,
+    AttachSignalIn,
+    CandidateSignalOut,
+    CandidateSnapshotOut,
     DashboardOut,
     EntityMetricsOut,
+    HypeAliasIn,
+    HypeAliasOut,
+    HypeCandidateDetailOut,
     HypeCandidateOut,
+    HypeCandidatePatchIn,
+    ManualXIngestIn,
+    ManualXIngestOut,
+    MergeSignalIn,
     MetricPointOut,
     PollResultOut,
+    PromoteEventIn,
     RawEventOut,
+    RejectSignalIn,
     SourceHealthOut,
     SourceOut,
+    TimelineItemOut,
     TrackedEntityOut,
     VelocityOut,
 )
-from app.db.models import Account, HypeCandidate, MetricObservation, RawEvent, Source, TrackedEntity
+from app.core.timeutil import ensure_aware, utcnow
+from app.db.models import (
+    Account,
+    AccountEvent,
+    CandidateSignal,
+    CandidateSnapshot,
+    CandidateSnapshotSchedule,
+    HypeAlias,
+    HypeCandidate,
+    MetricObservation,
+    RawEvent,
+    Source,
+    TrackedEntity,
+)
 from app.db.session import get_db
+from app.services.candidate_extraction import normalize_candidate_text
+from app.services.candidate_review import (
+    accept_as_new_hype,
+    add_alias,
+    attach_to_hype,
+    merge_signal,
+    promote_raw_event,
+    reject_signal,
+)
 from app.services.collector import poll_all_enabled, poll_source
 from app.services.discovery import persist_github_discovery, persist_hf_discovery
 from app.services.health import (
@@ -31,6 +69,7 @@ from app.services.health import (
     tracked_entity_counts,
 )
 from app.services.metrics import compute_velocity
+from app.services.x_ingest import manual_ingest
 
 router = APIRouter(prefix="/api")
 
@@ -112,14 +151,124 @@ def get_event(event_id: int, db: Session = Depends(get_db)) -> RawEventOut:
     return _event_out(event)
 
 
-@router.get("/accounts", response_model=list[AccountOut])
-def get_accounts(db: Session = Depends(get_db)) -> list[Account]:
-    return list(db.scalars(select(Account).order_by(Account.id)).all())
+@router.get("/accounts", response_model=list[AccountListItemOut])
+def get_accounts(
+    role: Optional[str] = None,
+    tier: Optional[str] = None,
+    priority: Optional[str] = None,
+    enabled: Optional[bool] = None,
+    q: Optional[str] = None,
+    db: Session = Depends(get_db),
+) -> list[AccountListItemOut]:
+    stmt = select(Account)
+    if role:
+        like = f"%{role}%"
+        stmt = stmt.where(
+            or_(Account.primary_bucket.ilike(like), Account.secondary_role.ilike(like))
+        )
+    if tier:
+        stmt = stmt.where(Account.universe_tier == tier)
+    if priority:
+        stmt = stmt.where(Account.monitor_priority == priority)
+    if enabled is not None:
+        stmt = stmt.where(Account.enabled.is_(enabled))
+    if q:
+        like = f"%{q}%"
+        stmt = stmt.where(
+            or_(
+                Account.handle.ilike(like),
+                Account.display_name.ilike(like),
+                Account.primary_bucket.ilike(like),
+            )
+        )
+    accounts = list(db.scalars(stmt.order_by(Account.handle.asc())).all())
+    now = utcnow()
+    since_30 = now - timedelta(days=30)
+    out: list[AccountListItemOut] = []
+    for acc in accounts:
+        events = db.scalars(
+            select(AccountEvent).where(AccountEvent.account_id == acc.id)
+        ).all()
+        events_30d = sum(1 for e in events if ensure_aware(e.observed_at) and ensure_aware(e.observed_at) >= since_30)
+        last_at = None
+        if events:
+            last_at = max((ensure_aware(e.observed_at) for e in events if e.observed_at), default=None)
+        open_signals = db.scalar(
+            select(func.count())
+            .select_from(CandidateSignal)
+            .join(AccountEvent, CandidateSignal.account_event_id == AccountEvent.id)
+            .where(AccountEvent.account_id == acc.id, CandidateSignal.state == "OPEN")
+        ) or 0
+        out.append(
+            AccountListItemOut(
+                id=acc.id,
+                platform=acc.platform,
+                handle=acc.handle,
+                display_name=acc.display_name,
+                primary_bucket=acc.primary_bucket,
+                secondary_role=acc.secondary_role,
+                universe_tier=acc.universe_tier,
+                monitor_priority=acc.monitor_priority,
+                conflict_risk=acc.conflict_risk,
+                tech_to_crypto_relevance=acc.tech_to_crypto_relevance,
+                enabled=acc.enabled,
+                last_ingested_post_at=last_at,
+                events_30d=events_30d,
+                open_candidate_signals=int(open_signals),
+            )
+        )
+    return out
 
 
-@router.get("/hype-candidates", response_model=list[HypeCandidateOut])
-def get_hype_candidates(db: Session = Depends(get_db)) -> list[HypeCandidate]:
-    return list(db.scalars(select(HypeCandidate).order_by(HypeCandidate.id)).all())
+@router.get("/accounts/{account_id}", response_model=AccountOut)
+def get_account(account_id: int, db: Session = Depends(get_db)) -> Account:
+    acc = db.get(Account, account_id)
+    if not acc:
+        raise HTTPException(status_code=404, detail="Account not found")
+    return acc
+
+
+@router.get("/accounts/{account_id}/stats", response_model=AccountStatsOut)
+def get_account_stats(account_id: int, db: Session = Depends(get_db)) -> AccountStatsOut:
+    acc = db.get(Account, account_id)
+    if not acc:
+        raise HTTPException(status_code=404, detail="Account not found")
+    now = utcnow()
+    since_24 = now - timedelta(hours=24)
+    since_30 = now - timedelta(days=30)
+    events = db.scalars(select(AccountEvent).where(AccountEvent.account_id == acc.id)).all()
+    events_24h = sum(
+        1 for e in events if ensure_aware(e.observed_at) and ensure_aware(e.observed_at) >= since_24
+    )
+    events_30d = sum(
+        1 for e in events if ensure_aware(e.observed_at) and ensure_aware(e.observed_at) >= since_30
+    )
+    last_event_at = None
+    if events:
+        last_event_at = max(
+            (ensure_aware(e.observed_at) for e in events if e.observed_at), default=None
+        )
+
+    signals = db.scalars(
+        select(CandidateSignal)
+        .join(AccountEvent, CandidateSignal.account_event_id == AccountEvent.id)
+        .where(AccountEvent.account_id == acc.id)
+    ).all()
+    sig_30 = [
+        s
+        for s in signals
+        if ensure_aware(s.created_at) and ensure_aware(s.created_at) >= since_30
+    ]
+    return AccountStatsOut(
+        account_id=acc.id,
+        events_24h=events_24h,
+        events_30d=events_30d,
+        candidate_signals_30d=len(sig_30),
+        accepted_signals_30d=sum(1 for s in sig_30 if s.state == "ACCEPTED"),
+        rejected_signals_30d=sum(1 for s in sig_30 if s.state == "REJECTED"),
+        open_signals=sum(1 for s in signals if s.state == "OPEN"),
+        last_event_at=last_event_at,
+    )
 
 
 @router.get("/dashboard", response_model=DashboardOut)
@@ -326,3 +475,383 @@ def discovery_hf_spaces(
 
     items = search_hf("space", q, limit=limit)
     return persist_hf_discovery(db, items)
+
+
+# --- Phase 3: X ingest + candidate engine ---
+
+
+def _signal_out(db: Session, signal: CandidateSignal) -> CandidateSignalOut:
+    event = db.get(RawEvent, signal.raw_event_id)
+    handle = None
+    conflict = None
+    if signal.account_event_id:
+        ae = db.get(AccountEvent, signal.account_event_id)
+        if ae:
+            acc = db.get(Account, ae.account_id)
+            if acc:
+                handle = acc.handle
+                conflict = acc.conflict_risk
+    preview = None
+    url = None
+    if event:
+        preview = (event.raw_text or event.title or "")[:160]
+        url = event.canonical_url
+    suggested: list[int] = []
+    if signal.state == "OPEN":
+        for h in db.scalars(select(HypeCandidate)).all():
+            if normalize_candidate_text(h.canonical_name) == signal.normalized_text:
+                suggested.append(h.id)
+        for alias in db.scalars(
+            select(HypeAlias).where(HypeAlias.normalized_alias == signal.normalized_text)
+        ).all():
+            if alias.hype_id not in suggested:
+                suggested.append(alias.hype_id)
+    return CandidateSignalOut(
+        id=signal.id,
+        raw_event_id=signal.raw_event_id,
+        account_event_id=signal.account_event_id,
+        signal_type=signal.signal_type,
+        candidate_text=signal.candidate_text,
+        normalized_text=signal.normalized_text,
+        extraction_method=signal.extraction_method,
+        source_role=signal.source_role,
+        trigger_reason=signal.trigger_reason,
+        initial_priority=signal.initial_priority,
+        state=signal.state,
+        linked_hype_id=signal.linked_hype_id,
+        merged_into_signal_id=signal.merged_into_signal_id,
+        created_at=signal.created_at,
+        reviewed_at=signal.reviewed_at,
+        review_note=signal.review_note,
+        account_handle=handle,
+        conflict_risk=conflict,
+        post_preview=preview,
+        source_url=url,
+        suggested_hype_ids=suggested,
+    )
+
+
+def _hype_detail(db: Session, hype: HypeCandidate) -> HypeCandidateDetailOut:
+    aliases = list(
+        db.scalars(select(HypeAlias).where(HypeAlias.hype_id == hype.id).order_by(HypeAlias.id)).all()
+    )
+    origin_account = None
+    initial_trigger = None
+    sig = db.scalar(
+        select(CandidateSignal)
+        .where(CandidateSignal.linked_hype_id == hype.id)
+        .order_by(CandidateSignal.id.asc())
+        .limit(1)
+    )
+    if sig:
+        initial_trigger = sig.signal_type
+        if sig.account_event_id:
+            ae = db.get(AccountEvent, sig.account_event_id)
+            if ae:
+                acc = db.get(Account, ae.account_id)
+                if acc:
+                    origin_account = acc.handle
+
+    last_snap = db.scalar(
+        select(CandidateSnapshot)
+        .where(CandidateSnapshot.hype_id == hype.id)
+        .order_by(CandidateSnapshot.snapshot_at.desc())
+        .limit(1)
+    )
+    next_sched = db.scalar(
+        select(CandidateSnapshotSchedule)
+        .where(
+            CandidateSnapshotSchedule.hype_id == hype.id,
+            CandidateSnapshotSchedule.status.in_(["PENDING", "FAILED"]),
+        )
+        .order_by(CandidateSnapshotSchedule.due_at.asc())
+        .limit(1)
+    )
+    meta = (last_snap.metadata_json if last_snap else None) or {}
+    return HypeCandidateDetailOut(
+        id=hype.id,
+        canonical_name=hype.canonical_name,
+        plain_english=hype.plain_english,
+        hype_unit_type=hype.hype_unit_type,
+        formation_pattern=hype.formation_pattern,
+        first_known_use_t0=hype.first_known_use_t0,
+        event_occurrence_t0=hype.event_occurrence_t0,
+        public_disclosure_t0=hype.public_disclosure_t0,
+        breakout_origin_t0=hype.breakout_origin_t0,
+        category_adoption_t0=hype.category_adoption_t0,
+        reactivation_t0=hype.reactivation_t0,
+        candidate_status=hype.candidate_status,
+        created_at=hype.created_at,
+        last_activity_at=hype.last_activity_at,
+        updated_at=hype.updated_at,
+        aliases=[HypeAliasOut.model_validate(a) for a in aliases],
+        origin_account=origin_account,
+        initial_trigger=initial_trigger,
+        independent_accounts=last_snap.independent_account_count if last_snap else None,
+        platforms=last_snap.platform_count if last_snap else None,
+        github_repos=meta.get("github_repo_count"),
+        hf_spaces=meta.get("hf_space_count"),
+        hn_stories=meta.get("hn_matching_story_count"),
+        last_snapshot_at=last_snap.snapshot_at if last_snap else None,
+        next_checkpoint=next_sched.checkpoint if next_sched else None,
+        next_checkpoint_due_at=next_sched.due_at if next_sched else None,
+    )
+
+
+@router.post("/x/manual-ingest", response_model=ManualXIngestOut)
+def post_manual_x_ingest(body: ManualXIngestIn, db: Session = Depends(get_db)) -> ManualXIngestOut:
+    try:
+        result = manual_ingest(
+            db,
+            url=body.url,
+            handle=body.handle,
+            text=body.text,
+            posted_at=body.posted_at,
+            post_type=body.post_type,
+            parent_url=body.parent_url,
+            quoted_url=body.quoted_url,
+            visible_metrics=body.visible_metrics.model_dump(exclude_none=True)
+            if body.visible_metrics
+            else None,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return ManualXIngestOut(
+        raw_event_id=result.raw_event_id,
+        account_id=result.account_id,
+        account_event_id=result.account_event_id,
+        known_account=result.known_account,
+        created_raw=result.created_raw,
+        candidate_signal_ids=result.candidate_signal_ids,
+        suggested_hype_ids=result.suggested_hype_ids,
+        candidate_signals_extracted=len(result.candidate_signal_ids),
+    )
+
+
+@router.get("/candidate-signals", response_model=list[CandidateSignalOut])
+def list_candidate_signals(
+    state: Optional[str] = "OPEN",
+    signal_type: Optional[str] = None,
+    q: Optional[str] = None,
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+) -> list[CandidateSignalOut]:
+    stmt = select(CandidateSignal)
+    if state:
+        stmt = stmt.where(CandidateSignal.state == state)
+    if signal_type:
+        stmt = stmt.where(CandidateSignal.signal_type == signal_type)
+    if q:
+        like = f"%{q}%"
+        stmt = stmt.where(
+            or_(
+                CandidateSignal.candidate_text.ilike(like),
+                CandidateSignal.normalized_text.ilike(like),
+            )
+        )
+    rows = db.scalars(
+        stmt.order_by(CandidateSignal.created_at.desc()).offset(offset).limit(limit)
+    ).all()
+    return [_signal_out(db, s) for s in rows]
+
+
+@router.post("/candidate-signals/{signal_id}/accept", response_model=HypeCandidateDetailOut)
+def accept_signal(
+    signal_id: int, body: AcceptSignalIn | None = None, db: Session = Depends(get_db)
+) -> HypeCandidateDetailOut:
+    body = body or AcceptSignalIn()
+    try:
+        hype = accept_as_new_hype(
+            db,
+            signal_id,
+            plain_english=body.plain_english,
+            hype_unit_type=body.hype_unit_type,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _hype_detail(db, hype)
+
+
+@router.post("/candidate-signals/{signal_id}/attach", response_model=CandidateSignalOut)
+def attach_signal(
+    signal_id: int, body: AttachSignalIn, db: Session = Depends(get_db)
+) -> CandidateSignalOut:
+    try:
+        signal = attach_to_hype(db, signal_id, body.hype_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _signal_out(db, signal)
+
+
+@router.post("/candidate-signals/{signal_id}/reject", response_model=CandidateSignalOut)
+def reject_signal_route(
+    signal_id: int, body: RejectSignalIn | None = None, db: Session = Depends(get_db)
+) -> CandidateSignalOut:
+    body = body or RejectSignalIn()
+    try:
+        signal = reject_signal(db, signal_id, reason=body.reason, note=body.note)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _signal_out(db, signal)
+
+
+@router.post("/candidate-signals/{signal_id}/merge", response_model=CandidateSignalOut)
+def merge_signal_route(
+    signal_id: int, body: MergeSignalIn, db: Session = Depends(get_db)
+) -> CandidateSignalOut:
+    try:
+        signal = merge_signal(db, signal_id, body.into_signal_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _signal_out(db, signal)
+
+
+@router.get("/hype-candidates", response_model=list[HypeCandidateDetailOut])
+def get_hype_candidates(
+    status: Optional[str] = None,
+    limit: int = Query(default=100, ge=1, le=500),
+    db: Session = Depends(get_db),
+) -> list[HypeCandidateDetailOut]:
+    stmt = select(HypeCandidate)
+    if status:
+        stmt = stmt.where(HypeCandidate.candidate_status == status)
+    rows = db.scalars(stmt.order_by(HypeCandidate.id.desc()).limit(limit)).all()
+    return [_hype_detail(db, h) for h in rows]
+
+
+@router.get("/hype-candidates/{hype_id}", response_model=HypeCandidateDetailOut)
+def get_hype_candidate(hype_id: int, db: Session = Depends(get_db)) -> HypeCandidateDetailOut:
+    hype = db.get(HypeCandidate, hype_id)
+    if not hype:
+        raise HTTPException(status_code=404, detail="Hype candidate not found")
+    return _hype_detail(db, hype)
+
+
+@router.patch("/hype-candidates/{hype_id}", response_model=HypeCandidateDetailOut)
+def patch_hype_candidate(
+    hype_id: int, body: HypeCandidatePatchIn, db: Session = Depends(get_db)
+) -> HypeCandidateDetailOut:
+    hype = db.get(HypeCandidate, hype_id)
+    if not hype:
+        raise HTTPException(status_code=404, detail="Hype candidate not found")
+    if body.plain_english is not None:
+        hype.plain_english = body.plain_english
+    if body.candidate_status is not None:
+        hype.candidate_status = body.candidate_status
+    if body.hype_unit_type is not None:
+        hype.hype_unit_type = body.hype_unit_type
+    hype.updated_at = utcnow()
+    hype.last_activity_at = utcnow()
+    db.commit()
+    db.refresh(hype)
+    return _hype_detail(db, hype)
+
+
+@router.post("/hype-candidates/{hype_id}/aliases", response_model=HypeAliasOut)
+def post_hype_alias(
+    hype_id: int, body: HypeAliasIn, db: Session = Depends(get_db)
+) -> HypeAliasOut:
+    hype = db.get(HypeCandidate, hype_id)
+    if not hype:
+        raise HTTPException(status_code=404, detail="Hype candidate not found")
+    alias = add_alias(db, hype_id, body.alias, alias_type=body.alias_type or "manual")
+    hype.updated_at = utcnow()
+    db.commit()
+    db.refresh(alias)
+    return HypeAliasOut.model_validate(alias)
+
+
+@router.get("/hype-candidates/{hype_id}/timeline", response_model=list[TimelineItemOut])
+def get_hype_timeline(hype_id: int, db: Session = Depends(get_db)) -> list[TimelineItemOut]:
+    hype = db.get(HypeCandidate, hype_id)
+    if not hype:
+        raise HTTPException(status_code=404, detail="Hype candidate not found")
+    items: list[TimelineItemOut] = []
+    items.append(
+        TimelineItemOut(
+            kind="hype_created",
+            at=hype.created_at,
+            title=f"Hype candidate created: {hype.canonical_name}",
+            detail=hype.candidate_status,
+            ref_id=hype.id,
+        )
+    )
+    for sig in db.scalars(
+        select(CandidateSignal).where(CandidateSignal.linked_hype_id == hype_id)
+    ).all():
+        items.append(
+            TimelineItemOut(
+                kind="signal",
+                at=sig.created_at,
+                title=f"{sig.signal_type}: {sig.candidate_text}",
+                detail=sig.state,
+                ref_id=sig.id,
+            )
+        )
+        event = db.get(RawEvent, sig.raw_event_id)
+        if event:
+            items.append(
+                TimelineItemOut(
+                    kind="raw_event",
+                    at=event.published_at or event.retrieved_at,
+                    title=event.title or (event.raw_text or "")[:80],
+                    detail=event.canonical_url,
+                    ref_id=event.id,
+                )
+            )
+    for snap in db.scalars(
+        select(CandidateSnapshot).where(CandidateSnapshot.hype_id == hype_id)
+    ).all():
+        items.append(
+            TimelineItemOut(
+                kind="snapshot",
+                at=snap.snapshot_at,
+                title=f"Snapshot {snap.checkpoint or ''}".strip(),
+                detail=f"platforms={snap.platform_count} mentions={snap.mention_count}",
+                ref_id=snap.id,
+            )
+        )
+    items.sort(key=lambda x: ensure_aware(x.at) or utcnow())
+    return items
+
+
+@router.get("/hype-candidates/{hype_id}/snapshots", response_model=list[CandidateSnapshotOut])
+def get_hype_snapshots(hype_id: int, db: Session = Depends(get_db)) -> list[CandidateSnapshotOut]:
+    hype = db.get(HypeCandidate, hype_id)
+    if not hype:
+        raise HTTPException(status_code=404, detail="Hype candidate not found")
+    rows = db.scalars(
+        select(CandidateSnapshot)
+        .where(CandidateSnapshot.hype_id == hype_id)
+        .order_by(CandidateSnapshot.snapshot_at.asc())
+    ).all()
+    return [CandidateSnapshotOut.model_validate(r) for r in rows]
+
+
+@router.post("/events/{event_id}/promote", response_model=CandidateSignalOut)
+def promote_event(
+    event_id: int, body: PromoteEventIn, db: Session = Depends(get_db)
+) -> CandidateSignalOut:
+    try:
+        signal = promote_raw_event(
+            db,
+            event_id,
+            candidate_name=body.candidate_name,
+            unit_type=body.unit_type,
+            phrase_or_object=body.phrase_or_object,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _signal_out(db, signal)
+
+
+@router.post("/system/process-candidate-snapshots")
+async def process_snapshots_now(
+    limit: int = Query(default=10, ge=1, le=50),
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    from app.services.candidate_snapshots import process_due_candidate_snapshots
+
+    n = await process_due_candidate_snapshots(db, limit=limit)
+    return {"processed": n}

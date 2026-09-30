@@ -112,11 +112,16 @@ export default function HomePage() {
               <strong>{v}</strong>
             </div>
           ))}
-          <p className="empty" style={{ marginTop: 12 }}>
-            No hype candidates yet. Candidate engine arrives later.
+          <h2 style={{ marginTop: 18 }}>Hype Radar</h2>
+          <p className="muted" style={{ marginBottom: 8 }}>
+            Prospective candidates with confirmation checkpoints — no opaque score.
           </p>
           <p>
-            <Link href="/discovery">Open Discovery →</Link>
+            <Link href="/hype-radar">Open Hype Radar →</Link>
+            {" · "}
+            <Link href="/candidate-inbox">Candidate Inbox →</Link>
+            {" · "}
+            <Link href="/x-ingest">X Ingest →</Link>
           </p>
         </div>
       </section>
