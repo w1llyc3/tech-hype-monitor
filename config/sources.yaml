@@ -79,3 +79,11 @@ sources:
     enabled: false
     metadata:
       author: huggingface
+
+  - name: X Manual Ingest
+    platform: x
+    source_type: x_manual
+    base_url: https://x.com
+    feed_url: null
+    poll_interval_seconds: 86400
+    enabled: true

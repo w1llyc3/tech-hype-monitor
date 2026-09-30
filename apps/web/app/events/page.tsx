@@ -7,7 +7,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useEffect, useMemo, useState } from "react";
-import { RawEvent, getEvent, getEvents } from "@/lib/api";
+import { RawEvent, getEvent, getEvents, promoteEvent } from "@/lib/api";
 
 const columnHelper = createColumnHelper<RawEvent>();
 
@@ -44,6 +44,8 @@ export default function EventsPage() {
   const [applied, setApplied] = useState<Filters>(EMPTY_FILTERS);
   const [selected, setSelected] = useState<RawEvent | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [promoteName, setPromoteName] = useState("");
+  const [promoteMsg, setPromoteMsg] = useState<string | null>(null);
 
   useEffect(() => {
     setError(null);
@@ -204,6 +206,32 @@ export default function EventsPage() {
             </p>
             <h3>Raw text</h3>
             <pre>{selected.raw_text || "null"}</pre>
+            <h3>Create Candidate</h3>
+            <div className="inline-row">
+              <input
+                placeholder="Candidate name"
+                value={promoteName}
+                onChange={(e) => setPromoteName(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!promoteName.trim()) return;
+                  try {
+                    const sig = await promoteEvent(selected.id, {
+                      candidate_name: promoteName.trim(),
+                    });
+                    setPromoteMsg(`Signal #${sig.id} created — open Candidate Inbox`);
+                    setPromoteName("");
+                  } catch (e) {
+                    setPromoteMsg(e instanceof Error ? e.message : String(e));
+                  }
+                }}
+              >
+                Create Candidate
+              </button>
+            </div>
+            {promoteMsg && <p className="muted">{promoteMsg}</p>}
             <h3>Metadata JSON</h3>
             <pre>{JSON.stringify(selected.metadata_json, null, 2)}</pre>
             <h3>Full record</h3>

@@ -137,6 +137,7 @@ class HypeCandidate(Base):
 
 class CandidateSnapshot(Base):
     __tablename__ = "candidate_snapshots"
+    __table_args__ = (Index("ix_candidate_snapshots_hype_checkpoint", "hype_id", "checkpoint"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     hype_id: Mapped[int] = mapped_column(ForeignKey("hype_candidates.id"), nullable=False)
@@ -154,7 +155,70 @@ class CandidateSnapshot(Base):
     token_exists: Mapped[Optional[bool]] = mapped_column(Boolean)
     token_count: Mapped[Optional[int]] = mapped_column(Integer)
     canonical_state: Mapped[Optional[str]] = mapped_column(String(64))
+    checkpoint: Mapped[Optional[str]] = mapped_column(String(32))
+    metadata_json: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class HypeAlias(Base):
+    __tablename__ = "hype_aliases"
+    __table_args__ = (
+        UniqueConstraint("hype_id", "normalized_alias", name="uq_hype_aliases_hype_norm"),
+        Index("ix_hype_aliases_normalized_alias", "normalized_alias"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    hype_id: Mapped[int] = mapped_column(ForeignKey("hype_candidates.id"), nullable=False)
+    alias: Mapped[str] = mapped_column(String(512), nullable=False)
+    normalized_alias: Mapped[str] = mapped_column(String(512), nullable=False)
+    alias_type: Mapped[Optional[str]] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class CandidateSignal(Base):
+    __tablename__ = "candidate_signals"
+    __table_args__ = (
+        Index("ix_candidate_signals_state_created", "state", "created_at"),
+        Index("ix_candidate_signals_normalized_text", "normalized_text"),
+        Index("ix_candidate_signals_raw_event_id", "raw_event_id"),
+        Index("ix_candidate_signals_linked_hype_id", "linked_hype_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    raw_event_id: Mapped[int] = mapped_column(ForeignKey("raw_events.id"), nullable=False)
+    account_event_id: Mapped[Optional[int]] = mapped_column(ForeignKey("account_events.id"))
+    signal_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    candidate_text: Mapped[str] = mapped_column(String(512), nullable=False)
+    normalized_text: Mapped[str] = mapped_column(String(512), nullable=False)
+    extraction_method: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_role: Mapped[Optional[str]] = mapped_column(String(128))
+    trigger_reason: Mapped[Optional[str]] = mapped_column(Text)
+    initial_priority: Mapped[Optional[str]] = mapped_column(String(32))
+    state: Mapped[str] = mapped_column(String(32), nullable=False, default="OPEN")
+    linked_hype_id: Mapped[Optional[int]] = mapped_column(ForeignKey("hype_candidates.id"))
+    merged_into_signal_id: Mapped[Optional[int]] = mapped_column(ForeignKey("candidate_signals.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    review_note: Mapped[Optional[str]] = mapped_column(Text)
+
+
+class CandidateSnapshotSchedule(Base):
+    __tablename__ = "candidate_snapshot_schedule"
+    __table_args__ = (
+        UniqueConstraint("hype_id", "checkpoint", name="uq_candidate_snapshot_schedule_hype_cp"),
+        Index("ix_candidate_snapshot_schedule_due", "status", "due_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    hype_id: Mapped[int] = mapped_column(ForeignKey("hype_candidates.id"), nullable=False)
+    checkpoint: Mapped[str] = mapped_column(String(32), nullable=False)
+    due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="PENDING")
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_error: Mapped[Optional[str]] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
 class Evidence(Base):

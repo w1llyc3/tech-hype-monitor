@@ -12,9 +12,20 @@ from app.core.timeutil import ensure_aware, utcnow
 from app.db.models import Source
 from app.db.session import SessionLocal
 from app.services.collector import poll_source
+from app.services.candidate_snapshots import process_due_candidate_snapshots
 
 log = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler()
+
+
+async def process_due_candidate_snapshots_job() -> None:
+    with SessionLocal() as db:
+        try:
+            n = await process_due_candidate_snapshots(db, limit=10)
+            if n:
+                log.info("Processed %s candidate snapshot checkpoints", n)
+        except Exception:  # noqa: BLE001
+            log.exception("process_due_candidate_snapshots failed")
 
 
 def last_activity_at(source: Source):
@@ -136,6 +147,14 @@ def start_scheduler() -> None:
         poll_watch_sources,
         IntervalTrigger(seconds=300),
         id="watch_sources",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+    scheduler.add_job(
+        process_due_candidate_snapshots_job,
+        IntervalTrigger(seconds=300),
+        id="process_due_candidate_snapshots",
         replace_existing=True,
         max_instances=1,
         coalesce=True,

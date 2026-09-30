@@ -1,0 +1,66 @@
+﻿platform,handle,display_name,primary_bucket,secondary_role,universe_tier,monitor_priority,preferred_trigger,economic_exposure,conflict_risk,reverse_test_status,tech_to_crypto_relevance,enabled
+x,@karpathy,Andrej Karpathy,NARRATIVE_NAMER,FRAMER / EXPERT,CORE,P0,New coined term or explicit replacement framing,LOW,LOW,DIRECTIONALLY_PASSED,LOW,true
+x,@simonw,Simon Willison,EXPERT_VALIDATOR,NARRATIVE_AMPLIFIER,CORE,P0,Early post adopting/explaining a new term or capability,LOW,LOW,DIRECTIONALLY_PASSED,LOW,true
+x,@swyx,swyx,NARRATIVE_NAMER,TECH_SCOUT / COMMUNITY_BRIDGE,CORE,P0,Original thread on a new engineering concept or unusual demo,LOW,LOW,DIRECTIONALLY_PASSED,LOW_MEDIUM,true
+x,@emollick,Ethan Mollick,APPLIED_AI_FRAMER,MAINSTREAM_EXPERT_BRIDGE,CORE,P0,Early hands-on result or category-convergence observation,LOW,LOW,DIRECTIONALLY_PASSED,LOW,true
+x,@fchollet,François Chollet,NARRATIVE_FRAMER,RESEARCH_CRITIC / CATEGORY_FRAMER,TEST,P0,New conceptual term or strong category challenge,LOW,LOW,NOT_STARTED,LOW,true
+x,@ylecun,Yann LeCun,RESEARCH_FRAMER,COUNTER_NARRATIVE,TEST,P1,Repeated advocacy for a non-consensus technical direction,LOW,LOW,NOT_STARTED,LOW,true
+x,@tobi,Tobi Lütke,FOUNDER_FRAMER,REFRAMING_AMPLIFIER,TEST,P1,Founder-originated replacement term,LOW,LOW,PARTIAL,LOW,true
+x,@rauchg,Guillermo Rauch,PRODUCT_FRAMER,BUILDER_NARRATIVE,TEST,P1,New category framing tied to real developer product behavior,LOW,LOW,NOT_STARTED,LOW_MEDIUM,true
+x,@clementdelangue,Clem Delangue,OBJECT_NARRATIVE_COMPRESSOR,SOURCE / MAINSTREAM_BRIDGE,CORE,P0,Object launch + broad framing in same post cycle,LOW,LOW,PARTIAL,MEDIUM,true
+x,@drjimfan,Jim Fan,VISUAL_TECH_AMPLIFIER,RESEARCH_FRAMER / ROBOTICS_BRIDGE,CORE,P0,Surprising robotics/world-model demo plus plain-English interpretation,DIRECT_COMPANY,HIGH,DIRECTIONALLY_PASSED,MEDIUM,true
+x,@andrewyng,Andrew Ng,CATEGORY_FRAMER,EDUCATION_AMPLIFIER,TEST,P1,New methodological label with educational push,LOW,LOW,NOT_STARTED,LOW,true
+x,@demishassabis,Demis Hassabis,SOURCE_FRAMER,RESEARCH_TO_MAINSTREAM_BRIDGE,CONTEXT,P1,New DeepMind capability with unusual demo/analogy,LOW,LOW,NOT_STARTED,LOW_MEDIUM,true
+x,@pmarca,Marc Andreessen,LEGITIMACY_BRIDGE,CULTURAL_FRAMER / CAPITAL,TEST,P1,Unexpected engagement or capital support for fringe tech object,POSSIBLE,MEDIUM,PARTIAL,HIGH,true
+x,@aravsrinivas,Aravind Srinivas,PRODUCT_FRAMER,FOUNDER_AMPLIFIER,CONTEXT,P1,New product object or product-category naming,LOW,LOW,NOT_STARTED,LOW,true
+x,@natfriedman,Nat Friedman,TECH_TASTEMAKER,CAPITAL / BUILDER_BRIDGE,TEST,P1,Unusual repo/project/person he begins repeatedly highlighting,POSSIBLE,MEDIUM,NOT_STARTED,MEDIUM,true
+x,@thom_wolf,Thomas Wolf,EXPERT_SCOUT,OPEN_SOURCE_AI_SOURCE,CORE,P0,New HF project/category he personally emphasizes,LOW,LOW,PARTIAL,LOW_MEDIUM,true
+x,@hwchase17,Harrison Chase,AGENT_SCOUT,BUILDER_AMPLIFIER,TEST,P1,Repeated community build pattern or new agent primitive,DIRECT_COMPANY,HIGH,NOT_STARTED,LOW,true
+x,@_philschmid,Philipp Schmid,BUILDER_SCOUT,NARRATIVE_AMPLIFIER,TEST,P1,High-engagement practical post adopting a new term,LOW,LOW,PARTIAL,LOW,true
+x,@sh_reya,Shreya Shankar,EXPERT_SCOUT,EVALS / DATA_SYSTEMS,TEST,P2,New eval/data-system method adopted by practitioners,LOW,LOW,NOT_STARTED,LOW,true
+x,@rasbt,Sebastian Raschka,RESEARCH_SCOUT,TECH_EXPLAINER,TEST,P1,New architecture family with repeated independent follow-up,LOW,LOW,NOT_STARTED,LOW,true
+x,@chipro,Chip Huyen,SYSTEMS_SCOUT,AI_ENGINEERING_FRAMER,TEST,P1,New production pattern / infra term,LOW,LOW,NOT_STARTED,LOW,true
+x,@jxnlco,Jason Liu,BUILDER_SCOUT,PRACTITIONER_AMPLIFIER,TEST,P1,Repeated practical use of a new model/tool before mainstream adoption,LOW,LOW,NOT_STARTED,LOW_MEDIUM,true
+x,@hamelhusain,Hamel Husain,BUILDER_SCOUT,EVALS / AGENT_ENGINEERING,TEST,P1,New working pattern with reproducible examples,LOW,LOW,NOT_STARTED,LOW,true
+x,@natolambert,Nathan Lambert,RESEARCH_SCOUT,OPEN_MODEL_NARRATIVE,TEST,P1,New model/reward paradigm repeatedly highlighted,LOW,LOW,NOT_STARTED,LOW,true
+x,@nathanbenaich,Nathan Benaich,INDUSTRY_SCOUT,RESEARCH_TO_CAPITAL_BRIDGE,TEST,P2,Repeated highlighting of new research/startup theme,DIRECT_INVESTOR,MEDIUM_HIGH,NOT_STARTED,MEDIUM,true
+x,@bcherny,Boris Cherny,PRODUCT_BUILDER_SCOUT,PROOF_AMPLIFIER,TEST,P1,New user workflow or capability that spreads beyond Claude Code,DIRECT_COMPANY,HIGH,NOT_STARTED,LOW_MEDIUM,true
+x,@alexalbert__,Alex Albert,LAB_TO_BUILDER_SCOUT,AGENT_FRAMER,TEST,P1,Rebranding/category move that spreads beyond Anthropic,DIRECT_COMPANY,HIGH,NOT_STARTED,LOW,true
+x,@yoheinakajima,Yohei Nakajima,AGENT_BUILDER_SCOUT,OPEN_SOURCE_PROOF,TEST,P1,Fast open-source implementation of emerging agent concept,LOW,LOW,NOT_STARTED,MEDIUM,true
+x,@jeremyphoward,Jeremy Howard,OPEN_SOURCE_SCOUT,TECH_EDUCATOR,TEST,P2,New method with working code and community uptake,LOW,LOW,NOT_STARTED,LOW,true
+x,@polynoamial,Noam Brown,FRONTIER_RESEARCH_SCOUT,REASONING / AGENTS,CONTEXT,P2,Unusual research capability with broader follow-up,DIRECT_COMPANY,HIGH,NOT_STARTED,LOW,true
+x,@aidan_mclau,Aidan McLaughlin,LAB_SCOUT,POSTTRAINING_RESEARCH,CONTEXT,P2,Repeated discussion of a new posttraining concept,DIRECT_COMPANY,HIGH,NOT_STARTED,LOW,true
+x,@latentspacepod,Latent.Space,AI_ENGINEERING_SCOUT,COMMUNITY_AMPLIFIER / AI_ENGINEERING_ANOMALY_AMPLIFIER / INTERVIEW_BRIDGE,TEST,P1,Guest/topic that suddenly recurs across builders,LOW,LOW,NOT_STARTED,LOW_MEDIUM,true
+x,@aisafetymemes,AI Notkilleveryoneism Memes,VIRAL_ANOMALY_AMPLIFIER,CROSS_CLUSTER_NARRATIVE,CORE,P0,New weird-agent/model behavior with concrete artifact,UNKNOWN,MEDIUM,DIRECTIONALLY_PASSED,HIGH,true
+x,@andrewcurran_,Andrew Curran,TECH_SCOUT,OBJECT_EXTRACTOR_CANDIDATE,TEST,P0,Small concrete detail isolated from a broad tech event,UNKNOWN,LOW,PARTIAL,HIGH,true
+x,@tszzl,roon,CULTURAL_AI_SCOUT,MEMETIC_FRAMER,TEST,P1,Odd AI behavior or insider-ish framing that spreads outside core lab circles,DIRECT_LAB/UNKNOWN,MEDIUM,PARTIAL,MEDIUM,true
+x,@elder_plinius,Pliny the Liberator,MODEL_BEHAVIOR_SCOUT,JAILBREAK_ANOMALY_AMPLIFIER,TEST,P1,New model + unexpected failure/behavior object,POSSIBLE_PRODUCTS,MEDIUM_HIGH,NOT_STARTED,MEDIUM,true
+x,@repligate,Janus,AI_MIND_ANOMALY_SCOUT,NARRATIVE_FRAMER,CORE,P0,Recurring model persona/artifact with distinctive name,LOW,LOW,DIRECTIONALLY_PASSED,HIGH,true
+x,@nearcyan,near,CULTURAL_TECH_SCOUT,INTERNET_MEME_SENSING,CONTEXT,P2,Weird tech culture object getting organic replies,UNKNOWN,MEDIUM,NOT_STARTED,MEDIUM,true
+x,@teknium,Teknium,OPEN_MODEL_ANOMALY_SCOUT,NOUS / OPEN_SOURCE_AI,TEST,P1,New open model/persona/behavior with community uptake,DIRECT_ECOSYSTEM,HIGH,NOT_STARTED,MEDIUM,true
+x,@goodside,Riley Goodside,MODEL_ANOMALY_OBJECT_SCOUT,PROMPT_INJECTION / TOKEN / MODEL_BEHAVIOR,CORE,P0,Simple reproducible prompt/model behavior with memorable artifact,LOW,LOW,DIRECTIONALLY_PASSED,HIGH,true
+x,@mattshumer_,Matt Shumer,AI_HYPE_SCOUT,VIRAL_FRAMER,TEST,P1,Strong claim about a capability jump that gets independently validated,DIRECT_BUILDER,MEDIUM_HIGH,NOT_STARTED,MEDIUM,true
+x,@victortaelin,Victor Taelin,TECH_CHALLENGE_GENERATOR,PROOF_TRIGGER,TEST,P2,New technical challenge spawning many independent solutions,LOW,LOW,NOT_STARTED,MEDIUM,true
+x,@andyayrey,Andy Ayrey,AI_CULTURE_CREATOR,SOURCE_ARCHITECT / MEME_WEAVER,CORE,P1,New AI persona/lore/object he is incubating or exposing publicly,POSSIBLE_INDIRECT,MEDIUM,PARTIAL,VERY_HIGH,true
+x,@levelsio,Pieter Levels,PROOF_AMPLIFIER,BUILDER_MAINSTREAM_BRIDGE,CORE,P0,New build that makes an abstract trend obviously real,DIRECT_PRODUCTS,MEDIUM,PARTIAL,MEDIUM_HIGH,true
+x,@t3dotgg,Theo Browne,DEVELOPER_AMPLIFIER,TOOLING_VALIDATOR,TEST,P1,Repeated enthusiastic adoption with community follow-through,POSSIBLE_SPONSOR,MEDIUM,NOT_STARTED,LOW_MEDIUM,true
+x,@rileybrown,Riley Brown,OPERATIONAL_AMPLIFIER,VIBE_CODING / AGENT_WORKFLOWS,TEST,P1,Rules/tutorial that causes visible imitation,POSSIBLE_PRODUCTS,MEDIUM,PARTIAL,LOW_MEDIUM,true
+x,@benhylak,Ben Hylak,BUILDER_PROOF_AMPLIFIER,AI_INTERFACE_EXPERIMENTER,TEST,P2,Distinctive demo that others copy or name,DIRECT_BUILDER,MEDIUM,NOT_STARTED,LOW_MEDIUM,true
+x,@dabit3,Nader Dabit,BUILDER_CROSSOVER,AI_CRYPTO_DEV_BRIDGE,TEST,P1,Developer object crossing from AI/web into crypto implementation,DIRECT_CRYPTO/BUILDER,HIGH,NOT_STARTED,HIGH,true
+x,@leerob,Lee Robinson,DEVELOPER_EDUCATOR,AI_CODING_PROOF,TEST,P2,New coding workflow with visible developer uptake,DIRECT_EMPLOYER,MEDIUM_HIGH,NOT_STARTED,LOW,true
+x,@2442lll,chit,TECH_TO_MEME_THESIS_BRIDGE,CRYPTO_NARRATIVE,TEST,P0,Fresh real-world tech object + long-form meme thesis + CA,UNKNOWN,MEDIUM_HIGH,PARTIAL,VERY_HIGH,true
+x,@himgajria,Him,ONCHAIN_STORY_EXTRACTOR,CRYPTO_META_FRAMER,TEST,P1,AI/tech-linked wallet event framed into a simple milestone,DIRECT_CONFIRMED_CASE,VERY_HIGH,PARTIAL,VERY_HIGH,true
+x,@theunipcs,Unipcs,TRADER_CREDIBILITY_BRIDGE,MEME_CANONICALIZATION,TEST,P1,Early position in newly tokenized tech object before broad breakout,DIRECT_TRADER,VERY_HIGH,NOT_STARTED,HIGH,true
+x,@nrv_gg,NRv,SOURCE_TAG_BRIDGE,TOKEN_TO_SOURCE_LOOP,TEST,P0,CA/ticker reply to a fresh tech/AI source shortly after token creation,DIRECT_CRYPTO,HIGH,NOT_STARTED,VERY_HIGH,true
+x,@bondedpump,BondedPump,CA_DISTRIBUTION_BRIDGE,TOKEN_TO_SOURCE_LOOP,TEST,P1,"New CA tied to fresh tech object, especially in source replies",DIRECT_CRYPTO,HIGH,NOT_STARTED,VERY_HIGH,true
+x,@lookonchain,Lookonchain,SYSTEM_ONCHAIN_SCOUT,CAPITAL_CONFIRMATION / CANONICALIZATION,CORE,P0,Unusual early accumulation of newly tokenized tech object,LOW,LOW,DIRECTIONALLY_PASSED,HIGH,true
+x,@ai_9684xtpa,Ai 姨,ONCHAIN_SCOUT,CHINESE_CRYPTO_NARRATIVE,TEST,P1,New token creation/whale flow tied to tech or meme narrative,UNKNOWN,MEDIUM,NOT_STARTED,HIGH,true
+x,@defiignas,Ignas,CRYPTO_NARRATIVE_SCOUT,THESIS_AMPLIFIER,TEST,P2,Tech theme entering broader crypto sector narrative,POSSIBLE_INVESTOR,MEDIUM_HIGH,NOT_STARTED,MEDIUM,true
+x,@muststopmurad,Murad Mahmudov,MEME_META_FRAMER,CULTURAL_CANONICALIZATION,TEST,P2,Tech-derived meme becomes cultural movement thesis,DIRECT_TRADER,VERY_HIGH,NOT_STARTED,MEDIUM,true
+x,@blknoiz06,Ansem,TRADER_RERATING_BRIDGE,PUBLIC_PURCHASE,TEST,P1,Public buy soon after builder/product proof,DIRECT_TRADER,VERY_HIGH,NOT_STARTED,HIGH,true
+x,@cburniske,Chris Burniske,TECH_CRYPTO_THESIS_BRIDGE,SECTOR_FRAMER,TEST,P2,New tech category explicitly mapped to crypto value capture,DIRECT_INVESTOR,HIGH,NOT_STARTED,MEDIUM,true
+x,@cryptolyxe,lyxe,CRYPTO_ATTENTION_AMPLIFIER,MEME_TRADER,TEST,P2,Fresh tech-derived meme appears in active trading commentary,DIRECT_TRADER,VERY_HIGH,NOT_STARTED,MEDIUM,true
+x,@openai,OpenAI,OFFICIAL_SOURCE,AI_LAB,SOURCE,P0,New product/model/capability name,DIRECT_COMPANY,N/A,N/A,LOW,true
+x,@anthropicai,Anthropic,OFFICIAL_SOURCE,AI_LAB,SOURCE,P0,New model/capability/SDK category,DIRECT_COMPANY,N/A,N/A,LOW,true
+x,@huggingface,Hugging Face,OFFICIAL_SOURCE,OPEN_SOURCE_AI,SOURCE,P0,New object with rapid derivative activity,DIRECT_COMPANY,N/A,N/A,MEDIUM,true
+x,@googledeepmind,Google DeepMind,OFFICIAL_SOURCE,AI_LAB,SOURCE,P0,New capability with strong demo/object,DIRECT_COMPANY,N/A,N/A,LOW_MEDIUM,true

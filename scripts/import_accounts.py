@@ -45,6 +45,13 @@ def _bool(value: str | None, default: bool = True) -> bool:
     return str(value).strip().lower() in {"1", "true", "yes", "y"}
 
 
+def _normalize_handle(handle: str) -> str:
+    h = (handle or "").strip()
+    if h.startswith("@"):
+        h = h[1:]
+    return h.lower()
+
+
 def import_accounts(csv_path: Path) -> tuple[int, int]:
     init_db()
     inserted = updated = 0
@@ -52,13 +59,22 @@ def import_accounts(csv_path: Path) -> tuple[int, int]:
     with csv_path.open(encoding="utf-8-sig", newline="") as f, SessionLocal() as db:
         reader = csv.DictReader(f)
         for row in reader:
-            platform = (row.get("platform") or "").strip()
-            handle = (row.get("handle") or "").strip()
+            platform = (row.get("platform") or "").strip().lower()
+            handle = _normalize_handle(row.get("handle") or "")
             if not platform or not handle:
                 continue
+            # Upsert keyed by (platform, handle); also match legacy @handle rows
             existing = db.scalar(
                 select(Account).where(Account.platform == platform, Account.handle == handle)
             )
+            if not existing:
+                existing = db.scalar(
+                    select(Account).where(
+                        Account.platform == platform, Account.handle == f"@{handle}"
+                    )
+                )
+                if existing:
+                    existing.handle = handle
             payload = {k: (row.get(k) or None) for k in FIELDS if k not in {"platform", "handle", "enabled"}}
             enabled = _bool(row.get("enabled"), True)
             if existing:
