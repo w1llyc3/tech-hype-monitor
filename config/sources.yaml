@@ -1,0 +1,47 @@
+# Editable source seed examples (imported by seed script into SQLite).
+# Phase 1: only Hacker News + Official / RSS are enabled.
+
+sources:
+  - name: Hacker News
+    platform: hn
+    source_type: hacker_news
+    base_url: https://hacker-news.firebaseio.com
+    feed_url: null
+    poll_interval_seconds: 120
+    enabled: true
+    metadata:
+      feeds:
+        - newstories
+        - topstories
+
+  - name: OpenAI Blog
+    platform: official_rss
+    source_type: official_rss
+    base_url: https://openai.com
+    feed_url: https://openai.com/blog/rss.xml
+    poll_interval_seconds: 600
+    enabled: true
+
+  - name: Cloudflare Blog
+    platform: official_rss
+    source_type: official_rss
+    base_url: https://blog.cloudflare.com
+    feed_url: https://blog.cloudflare.com/rss/
+    poll_interval_seconds: 600
+    enabled: true
+
+  - name: GitHub Trending (stub)
+    platform: github
+    source_type: github
+    base_url: https://github.com
+    feed_url: null
+    poll_interval_seconds: 900
+    enabled: false
+
+  - name: Hugging Face (stub)
+    platform: huggingface
+    source_type: huggingface
+    base_url: https://huggingface.co
+    feed_url: null
+    poll_interval_seconds: 900
+    enabled: false
