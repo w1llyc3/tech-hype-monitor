@@ -52,9 +52,20 @@ export default function SourceHealthPage() {
         },
       }),
       columnHelper.accessor("events_24h", { header: "Events 24h" }),
+      columnHelper.accessor("rate_limit_remaining", {
+        header: "Rate rem.",
+        cell: (info) => {
+          const v = info.getValue();
+          return v == null ? "—" : String(v);
+        },
+      }),
       columnHelper.accessor("status", {
         header: "Status",
-        cell: (info) => <span className={`badge ${info.getValue()}`}>{info.getValue()}</span>,
+        cell: (info) => {
+          const status = info.getValue();
+          const cls = status === "Rate Limited" ? "Stale" : status;
+          return <span className={`badge ${cls}`}>{status}</span>;
+        },
       }),
     ],
     []

@@ -5,8 +5,10 @@ from app.db.models import (
     CandidateSnapshot,
     Evidence,
     HypeCandidate,
+    MetricObservation,
     RawEvent,
     Source,
+    TrackedEntity,
 )
 from app.db.session import SessionLocal, engine, get_db, init_db, run_migrations
 
@@ -17,8 +19,10 @@ __all__ = [
     "CandidateSnapshot",
     "Evidence",
     "HypeCandidate",
+    "MetricObservation",
     "RawEvent",
     "Source",
+    "TrackedEntity",
     "SessionLocal",
     "engine",
     "get_db",

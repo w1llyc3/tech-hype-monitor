@@ -171,3 +171,58 @@ class Evidence(Base):
     observation_status: Mapped[str] = mapped_column(String(64), nullable=False, default="UNKNOWN")
     evidence_phase: Mapped[str] = mapped_column(String(64), nullable=False, default="UNKNOWN")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class TrackedEntity(Base):
+    __tablename__ = "tracked_entities"
+    __table_args__ = (
+        UniqueConstraint(
+            "platform",
+            "entity_type",
+            "external_id",
+            name="uq_tracked_entities_platform_type_external",
+        ),
+        Index("ix_tracked_entities_platform_type", "platform", "entity_type"),
+        Index("ix_tracked_entities_last_seen_at", "last_seen_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    source_id: Mapped[Optional[int]] = mapped_column(ForeignKey("sources.id"))
+    platform: Mapped[str] = mapped_column(String(64), nullable=False)
+    entity_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    external_id: Mapped[str] = mapped_column(String(512), nullable=False)
+    canonical_url: Mapped[Optional[str]] = mapped_column(String(2048))
+    display_name: Mapped[Optional[str]] = mapped_column(String(512))
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    metadata_json: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    observations: Mapped[list["MetricObservation"]] = relationship(back_populates="entity")
+
+
+class MetricObservation(Base):
+    __tablename__ = "metric_observations"
+    __table_args__ = (
+        Index(
+            "ix_metric_obs_entity_name_time",
+            "tracked_entity_id",
+            "metric_name",
+            "observed_at",
+        ),
+        Index("ix_metric_observations_observed_at", "observed_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tracked_entity_id: Mapped[int] = mapped_column(
+        ForeignKey("tracked_entities.id"), nullable=False
+    )
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    metric_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    metric_value: Mapped[Optional[float]] = mapped_column(Float)
+    metric_text: Mapped[Optional[str]] = mapped_column(String(512))
+    metadata_json: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    entity: Mapped["TrackedEntity"] = relationship(back_populates="observations")

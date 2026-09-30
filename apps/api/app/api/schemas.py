@@ -33,6 +33,8 @@ class SourceHealthOut(BaseModel):
     last_error: Optional[str] = None
     events_24h: int
     status: str
+    rate_limit_remaining: Optional[int] = None
+    rate_limit_reset_at: Optional[str] = None
 
 
 class RawEventOut(BaseModel):
@@ -106,5 +108,46 @@ class DashboardOut(BaseModel):
     stale: int
     error: int
     disabled: int
+    rate_limited: int = 0
     events_24h_by_group: dict[str, int]
     recent_events: list[RawEventOut]
+    tracked_entities: dict[str, int] = {}
+    recent_derivative_activity: dict[str, int] = {}
+
+
+class TrackedEntityOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    source_id: Optional[int] = None
+    platform: str
+    entity_type: str
+    external_id: str
+    canonical_url: Optional[str] = None
+    display_name: Optional[str] = None
+    first_seen_at: datetime
+    last_seen_at: datetime
+    metadata_json: Optional[dict[str, Any]] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class MetricPointOut(BaseModel):
+    observed_at: datetime
+    value: Optional[float] = None
+    text: Optional[str] = None
+    metadata: Optional[dict[str, Any]] = None
+
+
+class EntityMetricsOut(BaseModel):
+    entity: TrackedEntityOut
+    series: dict[str, list[MetricPointOut]]
+
+
+class VelocityOut(BaseModel):
+    metric: str
+    window_hours: int
+    start_value: Optional[float] = None
+    end_value: Optional[float] = None
+    delta: Optional[float] = None
+    delta_per_hour: Optional[float] = None

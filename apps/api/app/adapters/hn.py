@@ -115,9 +115,10 @@ class HNAdapter(SourceAdapter):
             "descendants": item.get("descendants"),
             "hn_id": hn_id,
             "type": item.get("type"),
-            "feed": self.feed,
+            "feeds_seen": [self.feed],
         }
         if rank is not None:
+            metadata["latest_top_rank"] = rank
             metadata["rank"] = rank
         return NormalizedRawEvent(
             platform="hn",

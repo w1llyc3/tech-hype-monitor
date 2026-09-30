@@ -1,12 +1,9 @@
 from app.adapters.base import NormalizedRawEvent, SourceAdapter
+from app.adapters.github import GitHubAdapter
 from app.adapters.hn import HNAdapter
+from app.adapters.huggingface import HuggingFaceAdapter
 from app.adapters.rss import RSSAdapter
-from app.adapters.stubs import (
-    DexScreenerAdapter,
-    GitHubAdapter,
-    HuggingFaceAdapter,
-    XAdapter,
-)
+from app.adapters.stubs import DexScreenerAdapter, XAdapter
 
 __all__ = [
     "NormalizedRawEvent",
@@ -27,9 +24,9 @@ def get_adapter_for_source(source, feed: str | None = None) -> SourceAdapter:
         return HNAdapter(feed=feed or "newstories")
     if st in {"official_rss", "rss"}:
         return RSSAdapter()
-    if st == "github":
+    if st in {"github", "github_org", "github_repo"}:
         return GitHubAdapter()
-    if st in {"huggingface", "hugging_face"}:
+    if st in {"huggingface", "hugging_face", "hf_org_models", "hf_org_datasets", "hf_org_spaces"}:
         return HuggingFaceAdapter()
     if st in {"x", "twitter"}:
         return XAdapter()

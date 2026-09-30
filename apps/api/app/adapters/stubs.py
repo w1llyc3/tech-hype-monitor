@@ -9,18 +9,8 @@ class _StubAdapter(SourceAdapter):
 
     async def fetch(self, source, since=None) -> list[NormalizedRawEvent]:
         raise NotImplementedError(
-            f"{self.stub_name} adapter is not implemented in Phase 1 (source={getattr(source, 'name', '?')})"
+            f"{self.stub_name} adapter is not implemented yet (source={getattr(source, 'name', '?')})"
         )
-
-
-class GitHubAdapter(_StubAdapter):
-    name = "github"
-    stub_name = "GitHubAdapter"
-
-
-class HuggingFaceAdapter(_StubAdapter):
-    name = "huggingface"
-    stub_name = "HuggingFaceAdapter"
 
 
 class XAdapter(_StubAdapter):

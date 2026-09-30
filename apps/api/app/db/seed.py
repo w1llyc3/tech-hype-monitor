@@ -39,8 +39,10 @@ def seed_sources(config_path: Path | None = None) -> int:
                 existing.poll_interval_seconds = int(item.get("poll_interval_seconds", 600))
                 existing.enabled = bool(item.get("enabled", False))
                 existing.updated_at = now
-                if item.get("metadata") and not existing.cursor_json:
-                    existing.cursor_json = {"config": item["metadata"]}
+                if item.get("metadata"):
+                    cursor = dict(existing.cursor_json or {})
+                    cursor["config"] = item["metadata"]
+                    existing.cursor_json = cursor
                 continue
 
             cursor = {"config": item["metadata"]} if item.get("metadata") else None

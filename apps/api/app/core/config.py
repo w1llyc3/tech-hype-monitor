@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     api_port: int = 8000
     web_origin: str = "http://localhost:3000"
     log_level: str = "INFO"
+    github_token: str = ""
+    hf_token: str = ""
     scheduler_enabled: bool = True
     hn_newstories_interval_seconds: int = 120
     hn_topstories_interval_seconds: int = 300

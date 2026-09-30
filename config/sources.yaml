@@ -1,5 +1,5 @@
 # Editable source seed examples (imported by seed script into SQLite).
-# Phase 1: only Hacker News + Official / RSS are enabled.
+# Phase 2: HN + Official RSS enabled; GitHub/HF watch examples disabled by default.
 
 sources:
   - name: Hacker News
@@ -18,7 +18,7 @@ sources:
     platform: official_rss
     source_type: official_rss
     base_url: https://openai.com
-    feed_url: https://openai.com/blog/rss.xml
+    feed_url: https://openai.com/news/rss.xml
     poll_interval_seconds: 600
     enabled: true
 
@@ -30,18 +30,52 @@ sources:
     poll_interval_seconds: 600
     enabled: true
 
-  - name: GitHub Trending (stub)
+  - name: GitHub OpenAI Org
     platform: github
-    source_type: github
-    base_url: https://github.com
+    source_type: github_org
+    base_url: https://github.com/openai
     feed_url: null
-    poll_interval_seconds: 900
+    poll_interval_seconds: 3600
     enabled: false
+    metadata:
+      org: openai
 
-  - name: Hugging Face (stub)
+  - name: GitHub openai/whisper
+    platform: github
+    source_type: github_repo
+    base_url: https://github.com/openai/whisper
+    feed_url: null
+    poll_interval_seconds: 3600
+    enabled: false
+    metadata:
+      repo: openai/whisper
+
+  - name: Hugging Face Org Models
     platform: huggingface
-    source_type: huggingface
+    source_type: hf_org_models
     base_url: https://huggingface.co
     feed_url: null
-    poll_interval_seconds: 900
+    poll_interval_seconds: 3600
     enabled: false
+    metadata:
+      author: huggingface
+
+  - name: Hugging Face Org Spaces
+    platform: huggingface
+    source_type: hf_org_spaces
+    base_url: https://huggingface.co
+    feed_url: null
+    poll_interval_seconds: 3600
+    enabled: false
+    metadata:
+      author: huggingface
+
+  - name: Hugging Face Org Datasets
+    platform: huggingface
+    source_type: hf_org_datasets
+    base_url: https://huggingface.co
+    feed_url: null
+    poll_interval_seconds: 3600
+    enabled: false
+    metadata:
+      author: huggingface

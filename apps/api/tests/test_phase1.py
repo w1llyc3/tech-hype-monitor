@@ -10,7 +10,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.adapters.base import NormalizedRawEvent
 from app.adapters.rss import RSSAdapter
-from app.adapters.stubs import GitHubAdapter
+from app.adapters.stubs import XAdapter
 from app.db.models import Base, RawEvent, Source
 from app.services.collector import persist_events, poll_source
 from app.services.health import compute_source_status
@@ -251,5 +251,5 @@ def test_restart_persistence(tmp_path: Path):
 
 
 def test_stub_adapter_disabled():
-    stub = GitHubAdapter()
+    stub = XAdapter()
     assert stub.is_enabled() is False

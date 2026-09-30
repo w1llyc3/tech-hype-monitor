@@ -7,7 +7,13 @@ from app.core.config import settings
 from app.db.models import Base
 
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# Prefer an explicitly set URL (tests / CLI); otherwise use app settings.
+_current_url = config.get_main_option("sqlalchemy.url")
+if not _current_url or _current_url.startswith("driver://") or "sqlite:///../../data" in _current_url:
+    config.set_main_option("sqlalchemy.url", settings.database_url)
+else:
+    # Keep caller-provided URL (e.g. temporary SQLite in migration tests).
+    pass
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

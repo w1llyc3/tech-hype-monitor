@@ -17,6 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               Tech Hype Monitor
             </Link>
             <Link href="/">Dashboard</Link>
+            <Link href="/discovery">Discovery</Link>
             <Link href="/events">Events</Link>
             <Link href="/source-health">Source Health</Link>
           </nav>
