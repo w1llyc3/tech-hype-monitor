@@ -7,14 +7,14 @@ from app.api.routes import router
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.db.seed import seed_sources
-from app.db.session import init_db
+from app.db.session import run_migrations
 from app.services.scheduler import start_scheduler, stop_scheduler
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
-    init_db()
+    run_migrations()
     seed_sources()
     start_scheduler()
     yield

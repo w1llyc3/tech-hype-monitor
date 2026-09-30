@@ -66,8 +66,8 @@ class Account(Base):
 class RawEvent(Base):
     __tablename__ = "raw_events"
     __table_args__ = (
-        UniqueConstraint("platform", "external_id", name="uq_raw_events_platform_external"),
-        Index("ix_raw_events_url_hash", "canonical_url", "content_hash"),
+        UniqueConstraint("source_id", "external_id", name="uq_raw_events_source_external"),
+        Index("ix_raw_events_source_url_hash", "source_id", "canonical_url", "content_hash"),
         Index("ix_raw_events_published_at", "published_at"),
         Index("ix_raw_events_retrieved_at", "retrieved_at"),
     )
@@ -119,7 +119,7 @@ class HypeCandidate(Base):
     __tablename__ = "hype_candidates"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    canonical_name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    canonical_name: Mapped[str] = mapped_column(String(255), nullable=False)
     plain_english: Mapped[Optional[str]] = mapped_column(Text)
     hype_unit_type: Mapped[Optional[str]] = mapped_column(String(64))
     formation_pattern: Mapped[Optional[str]] = mapped_column(String(64))

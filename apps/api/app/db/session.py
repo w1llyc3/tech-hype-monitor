@@ -1,11 +1,12 @@
 from collections.abc import Generator
 from pathlib import Path
 
+from alembic import command
+from alembic.config import Config
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.core.config import settings
-from app.db.models import Base
+from app.core.config import API_ROOT, settings
 
 Path(settings.data_dir).mkdir(parents=True, exist_ok=True)
 
@@ -34,8 +35,22 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
-def init_db() -> None:
-    Base.metadata.create_all(bind=engine)
+def ensure_wal() -> None:
+    if not settings.database_url.startswith("sqlite"):
+        return
     with engine.connect() as conn:
         conn.execute(text("PRAGMA journal_mode=WAL"))
         conn.commit()
+
+
+def run_migrations() -> None:
+    """Apply Alembic migrations. Production schema is owned by Alembic only."""
+    cfg = Config(str(API_ROOT / "alembic.ini"))
+    cfg.set_main_option("sqlalchemy.url", settings.database_url)
+    command.upgrade(cfg, "head")
+    ensure_wal()
+
+
+def init_db() -> None:
+    """Backward-compatible entrypoint: Alembic migrations + WAL (no ORM schema sync)."""
+    run_migrations()

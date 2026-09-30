@@ -6,10 +6,26 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { RawEvent, getEvent, getEvents } from "@/lib/api";
 
 const columnHelper = createColumnHelper<RawEvent>();
+
+type Filters = {
+  platform: string;
+  source: string;
+  q: string;
+  since: string;
+  until: string;
+};
+
+const EMPTY_FILTERS: Filters = {
+  platform: "",
+  source: "",
+  q: "",
+  since: "",
+  until: "",
+};
 
 function fmt(ts: string | null) {
   if (!ts) return "—";
@@ -24,31 +40,24 @@ function preview(e: RawEvent) {
 export default function EventsPage() {
   const [rows, setRows] = useState<RawEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [platform, setPlatform] = useState("");
-  const [source, setSource] = useState("");
-  const [q, setQ] = useState("");
-  const [since, setSince] = useState("");
-  const [until, setUntil] = useState("");
+  const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
+  const [applied, setApplied] = useState<Filters>(EMPTY_FILTERS);
   const [selected, setSelected] = useState<RawEvent | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  const load = useCallback(() => {
+  useEffect(() => {
     setError(null);
     getEvents({
-      platform: platform || undefined,
-      source: source || undefined,
-      q: q || undefined,
-      since: since ? new Date(since).toISOString() : undefined,
-      until: until ? new Date(until).toISOString() : undefined,
+      platform: applied.platform || undefined,
+      source: applied.source || undefined,
+      q: applied.q || undefined,
+      since: applied.since ? new Date(applied.since).toISOString() : undefined,
+      until: applied.until ? new Date(applied.until).toISOString() : undefined,
       limit: "200",
     })
       .then(setRows)
       .catch((e: Error) => setError(e.message));
-  }, [platform, source, q, since, until]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  }, [applied]);
 
   const columns = useMemo(
     () => [
@@ -98,7 +107,7 @@ export default function EventsPage() {
     try {
       const full = await getEvent(row.id);
       setSelected(full);
-    } catch (e) {
+    } catch {
       setSelected(row);
     } finally {
       setLoadingDetail(false);
@@ -108,27 +117,38 @@ export default function EventsPage() {
   return (
     <main>
       <h1>Raw Events</h1>
-      <p className="sub">Browse stored evidence. Click a row for the full record.</p>
+      <p className="sub">Browse stored evidence. Filters apply only when you click Apply.</p>
 
       <div className="filters">
-        <select value={platform} onChange={(e) => setPlatform(e.target.value)}>
+        <select
+          value={draft.platform}
+          onChange={(e) => setDraft((d) => ({ ...d, platform: e.target.value }))}
+        >
           <option value="">All platforms</option>
           <option value="hn">hn</option>
           <option value="official_rss">official_rss</option>
         </select>
         <input
           placeholder="Source name"
-          value={source}
-          onChange={(e) => setSource(e.target.value)}
+          value={draft.source}
+          onChange={(e) => setDraft((d) => ({ ...d, source: e.target.value }))}
         />
         <input
           placeholder="Text search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
+          value={draft.q}
+          onChange={(e) => setDraft((d) => ({ ...d, q: e.target.value }))}
         />
-        <input type="datetime-local" value={since} onChange={(e) => setSince(e.target.value)} />
-        <input type="datetime-local" value={until} onChange={(e) => setUntil(e.target.value)} />
-        <button type="button" onClick={load}>
+        <input
+          type="datetime-local"
+          value={draft.since}
+          onChange={(e) => setDraft((d) => ({ ...d, since: e.target.value }))}
+        />
+        <input
+          type="datetime-local"
+          value={draft.until}
+          onChange={(e) => setDraft((d) => ({ ...d, until: e.target.value }))}
+        />
+        <button type="button" onClick={() => setApplied({ ...draft })}>
           Apply
         </button>
       </div>

@@ -17,6 +17,14 @@ log = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler()
 
 
+def last_activity_at(source: Source):
+    """Most recent of last_success_at / last_error_at (aware UTC)."""
+    success = ensure_aware(source.last_success_at)
+    error = ensure_aware(source.last_error_at)
+    stamped = [t for t in (success, error) if t is not None]
+    return max(stamped) if stamped else None
+
+
 async def poll_hn_feed(feed: str) -> None:
     with SessionLocal() as db:
         source = db.scalar(
@@ -41,7 +49,7 @@ async def poll_rss_due() -> None:
         now = utcnow()
         for source in sources:
             interval = source.poll_interval_seconds or settings.rss_default_interval_seconds
-            last = ensure_aware(source.last_success_at) or ensure_aware(source.last_error_at)
+            last = last_activity_at(source)
             if last and (now - last).total_seconds() < interval:
                 continue
             try:

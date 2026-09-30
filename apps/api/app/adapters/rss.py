@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+from calendar import timegm
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-from time import mktime
 
 import feedparser
 import httpx
@@ -69,9 +69,9 @@ class RSSAdapter(SourceAdapter):
 
     def _parse_published(self, entry) -> datetime | None:
         if getattr(entry, "published_parsed", None):
-            return datetime.fromtimestamp(mktime(entry.published_parsed), tz=timezone.utc)
+            return datetime.fromtimestamp(timegm(entry.published_parsed), tz=timezone.utc)
         if getattr(entry, "updated_parsed", None):
-            return datetime.fromtimestamp(mktime(entry.updated_parsed), tz=timezone.utc)
+            return datetime.fromtimestamp(timegm(entry.updated_parsed), tz=timezone.utc)
         for key in ("published", "updated"):
             raw = getattr(entry, key, None)
             if not raw:

@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from app.core.config import settings  # noqa: E402
 from app.core.timeutil import utcnow  # noqa: E402
 from app.db.models import Source  # noqa: E402
-from app.db.session import SessionLocal, init_db  # noqa: E402
+from app.db.session import SessionLocal, run_migrations  # noqa: E402
 
 
 def seed_sources(config_path: Path | None = None) -> int:
@@ -71,7 +71,7 @@ def seed_sources(config_path: Path | None = None) -> int:
 
 
 def main() -> None:
-    init_db()
+    run_migrations()
     n = seed_sources()
     print(f"Seed complete. New sources inserted: {n}")
 

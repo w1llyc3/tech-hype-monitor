@@ -70,7 +70,7 @@ def upgrade() -> None:
         sa.Column("last_activity_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("canonical_name"),
+        sa.UniqueConstraint("canonical_name", name="uq_hype_candidates_canonical_name"),
     )
     op.create_table(
         "raw_events",

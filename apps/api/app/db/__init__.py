@@ -8,7 +8,7 @@ from app.db.models import (
     RawEvent,
     Source,
 )
-from app.db.session import SessionLocal, engine, get_db, init_db
+from app.db.session import SessionLocal, engine, get_db, init_db, run_migrations
 
 __all__ = [
     "Account",
@@ -23,4 +23,5 @@ __all__ = [
     "engine",
     "get_db",
     "init_db",
+    "run_migrations",
 ]

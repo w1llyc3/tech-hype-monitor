@@ -27,11 +27,12 @@ class PollResult:
     duration_ms: int = 0
 
 
-def _find_existing(db: Session, event: NormalizedRawEvent) -> RawEvent | None:
+def _find_existing(db: Session, source: Source, event: NormalizedRawEvent) -> RawEvent | None:
+    """Dedupe within a single source (source-aware)."""
     if event.external_id:
         found = db.scalar(
             select(RawEvent).where(
-                RawEvent.platform == event.platform,
+                RawEvent.source_id == source.id,
                 RawEvent.external_id == event.external_id,
             )
         )
@@ -40,17 +41,17 @@ def _find_existing(db: Session, event: NormalizedRawEvent) -> RawEvent | None:
     if event.canonical_url and event.content_hash:
         found = db.scalar(
             select(RawEvent).where(
+                RawEvent.source_id == source.id,
                 RawEvent.canonical_url == event.canonical_url,
                 RawEvent.content_hash == event.content_hash,
             )
         )
         if found:
             return found
-    # Fallback: same platform + url without external id
     if event.canonical_url and not event.external_id:
         found = db.scalar(
             select(RawEvent).where(
-                RawEvent.platform == event.platform,
+                RawEvent.source_id == source.id,
                 RawEvent.canonical_url == event.canonical_url,
                 RawEvent.external_id.is_(None),
             )
@@ -64,14 +65,14 @@ def persist_events(db: Session, source: Source, events: list[NormalizedRawEvent]
     inserted = duplicates = updated = 0
     now = utcnow()
     for event in events:
-        existing = _find_existing(db, event)
+        existing = _find_existing(db, source, event)
         if existing:
             duplicates += 1
-            # Update HN score/comment metadata for recently seen stories.
+            # Update HN score/comment/rank metadata for recently seen stories.
             if event.metadata and existing.platform == "hn":
                 meta = dict(existing.metadata_json or {})
                 changed = False
-                for key in ("score", "descendants"):
+                for key in ("score", "descendants", "rank", "feed"):
                     if key in event.metadata and meta.get(key) != event.metadata.get(key):
                         meta[key] = event.metadata.get(key)
                         changed = True
