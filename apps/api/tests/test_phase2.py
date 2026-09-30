@@ -252,7 +252,8 @@ def test_github_discovery_dedupe_and_star_change(db_session):
     ]
     ids1 = persist_github_discovery(db_session, items)
     ids2 = persist_github_discovery(db_session, items)
-    assert ids1 == ids2
+    assert [i["entity_id"] for i in ids1] == [i["entity_id"] for i in ids2]
+    assert ids1[0]["entity_id"] is not None
     assert (
         db_session.scalars(select(TrackedEntity).where(TrackedEntity.external_id == "acme/demo"))
         .all()

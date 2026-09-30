@@ -283,7 +283,7 @@ async def discovery_github(
             gh_source.last_error_at = utcnow()
             db.commit()
         raise HTTPException(status_code=429, detail=str(exc)) from exc
-    persist_github_discovery(db, items)
+    items = persist_github_discovery(db, items)
     if gh_source is not None:
         pending = getattr(gh_source, "_pending_cursor", None)
         if pending:
@@ -301,8 +301,7 @@ def discovery_hf_models(
     from app.adapters.huggingface import search_hf
 
     items = search_hf("model", q, limit=limit)
-    persist_hf_discovery(db, items)
-    return items
+    return persist_hf_discovery(db, items)
 
 
 @router.get("/discovery/huggingface/datasets")
@@ -314,8 +313,7 @@ def discovery_hf_datasets(
     from app.adapters.huggingface import search_hf
 
     items = search_hf("dataset", q, limit=limit)
-    persist_hf_discovery(db, items)
-    return items
+    return persist_hf_discovery(db, items)
 
 
 @router.get("/discovery/huggingface/spaces")
@@ -327,5 +325,4 @@ def discovery_hf_spaces(
     from app.adapters.huggingface import search_hf
 
     items = search_hf("space", q, limit=limit)
-    persist_hf_discovery(db, items)
-    return items
+    return persist_hf_discovery(db, items)

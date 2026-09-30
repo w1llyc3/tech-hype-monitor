@@ -9,8 +9,8 @@ from sqlalchemy.orm import Session
 from app.services.metrics import record_metrics, upsert_tracked_entity
 
 
-def persist_github_discovery(db: Session, items: list[dict[str, Any]]) -> list[int]:
-    ids: list[int] = []
+def persist_github_discovery(db: Session, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Persist items and stamp each with entity_id. Returns the same list."""
     for item in items:
         external_id = item.get("external_id")
         if not external_id:
@@ -41,13 +41,13 @@ def persist_github_discovery(db: Session, items: list[dict[str, Any]]) -> list[i
                 "forks": float(item["forks"]) if item.get("forks") is not None else None,
             },
         )
-        ids.append(entity.id)
+        item["entity_id"] = entity.id
     db.commit()
-    return ids
+    return items
 
 
-def persist_hf_discovery(db: Session, items: list[dict[str, Any]]) -> list[int]:
-    ids: list[int] = []
+def persist_hf_discovery(db: Session, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Persist items and stamp each with entity_id. Returns the same list."""
     for item in items:
         external_id = item.get("external_id") or item.get("repo_id")
         entity_type = item.get("entity_type") or "hf_model"
@@ -76,6 +76,6 @@ def persist_hf_discovery(db: Session, items: list[dict[str, Any]]) -> list[int]:
                 float(item["downloads"]) if item.get("downloads") is not None else None
             )
         record_metrics(db, entity, metrics)
-        ids.append(entity.id)
+        item["entity_id"] = entity.id
     db.commit()
-    return ids
+    return items
