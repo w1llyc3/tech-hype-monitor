@@ -590,12 +590,15 @@ def _hype_detail(db: Session, hype: HypeCandidate) -> HypeCandidateDetailOut:
         initial_trigger=initial_trigger,
         independent_accounts=last_snap.independent_account_count if last_snap else None,
         platforms=last_snap.platform_count if last_snap else None,
-        github_repos=meta.get("github_repo_count"),
-        hf_spaces=meta.get("hf_space_count"),
+        github_repos=meta.get("github_repo_count_post_t0", meta.get("github_repo_count")),
+        hf_spaces=meta.get("hf_space_count_post_t0", meta.get("hf_space_count")),
         hn_stories=meta.get("hn_matching_story_count"),
         last_snapshot_at=last_snap.snapshot_at if last_snap else None,
         next_checkpoint=next_sched.checkpoint if next_sched else None,
         next_checkpoint_due_at=next_sched.due_at if next_sched else None,
+        github_repos_preexisting=meta.get("github_repo_count_preexisting"),
+        hf_spaces_preexisting=meta.get("hf_space_count_preexisting"),
+        total_monitored_accounts=meta.get("total_monitored_account_count"),
     )
 
 

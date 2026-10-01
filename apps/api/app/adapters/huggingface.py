@@ -103,6 +103,7 @@ def _normalize_search_item(kind: EntityKind, item: Any) -> dict[str, Any]:
         "author": meta.get("author"),
         "url": ev.canonical_url,
         "last_modified": meta.get("last_modified"),
+        "created_at": meta.get("created_at"),
         "likes": meta.get("likes"),
         "downloads": meta.get("downloads"),
         "tags": meta.get("tags") or [],

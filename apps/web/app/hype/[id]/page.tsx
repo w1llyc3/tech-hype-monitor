@@ -136,6 +136,13 @@ export default function HypeDetailPage({ params }: { params: { id: string } }) {
             <span className="muted">Indep. accounts / platforms</span>{" "}
             {hype.independent_accounts ?? "—"} / {hype.platforms ?? "—"}
           </p>
+          <p>
+            <span className="muted">Independent amplifiers</span>{" "}
+            {hype.independent_accounts ?? "—"}
+            {hype.total_monitored_accounts != null
+              ? ` (of ${hype.total_monitored_accounts} monitored)`
+              : ""}
+          </p>
           <h2 style={{ marginTop: 16 }}>Actions</h2>
           <div className="filters">
             <select value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -168,15 +175,21 @@ export default function HypeDetailPage({ params }: { params: { id: string } }) {
             <div className="stat">{String(lastMeta.hn_matching_story_count ?? "—")}</div>
           </div>
           <div>
-            <div className="stat-label">GitHub repos (relevant)</div>
+            <div className="stat-label">GitHub new repos since T0</div>
             <div className="stat">
-              {String(lastMeta.github_repo_count_relevant ?? lastMeta.github_repo_count ?? "—")}
+              {String(lastMeta.github_repo_count_post_t0 ?? lastMeta.github_repo_count ?? "—")}
+            </div>
+            <div className="muted" style={{ fontSize: "0.8rem" }}>
+              Pre-existing: {String(lastMeta.github_repo_count_preexisting ?? "—")}
             </div>
           </div>
           <div>
-            <div className="stat-label">HF spaces (relevant)</div>
+            <div className="stat-label">HF new Spaces since T0</div>
             <div className="stat">
-              {String(lastMeta.hf_space_count_relevant ?? lastMeta.hf_space_count ?? "—")}
+              {String(lastMeta.hf_space_count_post_t0 ?? lastMeta.hf_space_count ?? "—")}
+            </div>
+            <div className="muted" style={{ fontSize: "0.8rem" }}>
+              Pre-existing: {String(lastMeta.hf_space_count_preexisting ?? "—")}
             </div>
           </div>
           <div>
@@ -191,7 +204,10 @@ export default function HypeDetailPage({ params }: { params: { id: string } }) {
       <section className="panel" style={{ marginTop: 16 }}>
         <h2>Account propagation</h2>
         <p className="muted">
-          Distinct monitored accounts in latest snapshot: {hype.independent_accounts ?? "—"}
+          Independent amplifiers (origin excluded): {hype.independent_accounts ?? "—"}
+          {hype.total_monitored_accounts != null
+            ? ` · total monitored matches: ${hype.total_monitored_accounts}`
+            : ""}
         </p>
       </section>
 

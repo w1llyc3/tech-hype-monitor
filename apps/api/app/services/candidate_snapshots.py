@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from sqlalchemy import select
@@ -14,6 +14,7 @@ from app.core.timeutil import ensure_aware, utcnow
 from app.db.models import (
     Account,
     AccountEvent,
+    CandidateSignal,
     CandidateSnapshot,
     CandidateSnapshotSchedule,
     HypeAlias,
@@ -46,7 +47,6 @@ def _text_matches(haystack: str, aliases: list[str]) -> bool:
     if not haystack:
         return False
     low = haystack.lower()
-    # Also compare against hyphen/underscore normalized forms (repo ids, etc.)
     collapsed = re.sub(r"[\s_\-]+", "", low)
     for a in aliases:
         n = normalize_candidate_text(a)
@@ -57,7 +57,6 @@ def _text_matches(haystack: str, aliases: list[str]) -> bool:
         if len(n) <= 3:
             if boundary:
                 return True
-            # short aliases: also allow boundary on hyphenated tokens (zz in foo-zz-bar)
             if re.search(rf"(?<![a-z0-9]){re.escape(n)}(?![a-z0-9])", re.sub(r"[\-_]", " ", low)):
                 return True
             continue
@@ -68,8 +67,22 @@ def _text_matches(haystack: str, aliases: list[str]) -> bool:
     return False
 
 
+def _parse_dt(value: Any) -> Optional[datetime]:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    return None
+
+
 def _event_time(event: RawEvent) -> Optional[datetime]:
-    return ensure_aware(event.published_at) or ensure_aware(event.retrieved_at)
+    """Immutable evidence time: published_at OR created_at (never mutable retrieved_at)."""
+    return ensure_aware(event.published_at) or ensure_aware(event.created_at)
 
 
 def _in_window(
@@ -94,14 +107,72 @@ def _hype_window(hype: HypeCandidate, window_end: datetime) -> tuple[datetime, d
     return start, ensure_aware(window_end) or utcnow()
 
 
+def _classify_timing(
+    created_at: Any,
+    window_start: datetime,
+    window_end: datetime,
+) -> str:
+    dt = ensure_aware(_parse_dt(created_at))
+    if dt is None:
+        return "UNKNOWN_TIME"
+    ws = ensure_aware(window_start)
+    we = ensure_aware(window_end)
+    if ws is not None and dt < ws:
+        return "PREEXISTING"
+    if ws is not None and we is not None and ws <= dt <= we:
+        return "POST_T0"
+    if ws is not None and dt >= ws and we is None:
+        return "POST_T0"
+    return "UNKNOWN_TIME"
+
+
+def _origin_account(db: Session, hype: HypeCandidate) -> tuple[Optional[int], Optional[str]]:
+    """Earliest accepted signal's monitored account; NULL if ambiguous/missing."""
+    signals = list(
+        db.scalars(
+            select(CandidateSignal).where(
+                CandidateSignal.linked_hype_id == hype.id,
+                CandidateSignal.state == "ACCEPTED",
+                CandidateSignal.account_event_id.is_not(None),
+            )
+        ).all()
+    )
+    if not signals:
+        return None, None
+
+    def sort_key(s: CandidateSignal) -> tuple[datetime, int]:
+        t = ensure_aware(s.reviewed_at) or ensure_aware(s.created_at) or utcnow()
+        return t, s.id
+
+    signals.sort(key=sort_key)
+    earliest_t = sort_key(signals[0])[0]
+    account_ids: list[int] = []
+    for s in signals:
+        if sort_key(s)[0] != earliest_t and account_ids:
+            break
+        if sort_key(s)[0] > earliest_t:
+            break
+        ae = db.get(AccountEvent, s.account_event_id)
+        if ae:
+            account_ids.append(ae.account_id)
+    unique = list(dict.fromkeys(account_ids))
+    if len(unique) != 1:
+        return None, None
+    acc = db.get(Account, unique[0])
+    return unique[0], (acc.handle if acc else None)
+
+
 def _collect_x_account_stats(
     db: Session,
     hype: HypeCandidate,
     aliases: list[str],
     window_start: datetime,
     window_end: datetime,
+    *,
+    origin_account_id: Optional[int] = None,
+    origin_account_handle: Optional[str] = None,
 ) -> dict[str, Any]:
-    """Count unique matching X raw_event_ids; accounts from monitored account_events only."""
+    """Unique matching X raw_event_ids; independent amplifiers exclude origin."""
     matching_raw_ids: set[int] = set()
     matching_ae: list[AccountEvent] = []
 
@@ -115,9 +186,11 @@ def _collect_x_account_stats(
 
     account_events = db.scalars(select(AccountEvent)).all()
     for ae in account_events:
-        if not _in_window(ae.observed_at, window_start, window_end):
-            continue
         raw = db.get(RawEvent, ae.raw_event_id) if ae.raw_event_id else None
+        # Prefer immutable raw evidence time; fall back to account_event.created_at
+        ae_time = _event_time(raw) if raw else ensure_aware(ae.created_at)
+        if not _in_window(ae_time, window_start, window_end):
+            continue
         blob = " ".join(
             filter(
                 None,
@@ -135,22 +208,28 @@ def _collect_x_account_stats(
         if raw is not None and raw.platform == "x":
             matching_raw_ids.add(raw.id)
         elif ae.raw_event_id:
-            # still attribute monitored mention via linked raw id when platform x already counted
             matching_raw_ids.add(ae.raw_event_id)
 
     account_ids = {ae.account_id for ae in matching_ae}
-    high_quality = 0
-    for aid in account_ids:
+    independent_ids = {a for a in account_ids if origin_account_id is None or a != origin_account_id}
+
+    high_quality_independent = 0
+    for aid in independent_ids:
         acc = db.get(Account, aid)
         if not acc:
             continue
         if (acc.universe_tier or "").upper() == "CORE" or (acc.monitor_priority or "").upper() == "P0":
-            high_quality += 1
+            high_quality_independent += 1
 
     return {
         "mention_count": len(matching_raw_ids),
-        "independent_account_count": len(account_ids),
-        "high_quality_amplifier_count": high_quality,
+        "origin_account_id": origin_account_id,
+        "origin_account_handle": origin_account_handle,
+        "total_monitored_account_count": len(account_ids),
+        "independent_account_count": len(independent_ids),
+        "high_quality_independent_amplifier_count": high_quality_independent,
+        # Column mapping: HQ amplifiers = independent only
+        "high_quality_amplifier_count": high_quality_independent,
         "x_raw_match_count": len(matching_raw_ids),
         "account_event_match_count": len(matching_ae),
     }
@@ -214,7 +293,24 @@ def _hf_item_relevant(item: dict[str, Any], aliases: list[str]) -> bool:
     return _text_matches(blob, aliases)
 
 
-async def _collect_github_stats(db: Session, aliases: list[str]) -> dict[str, Any]:
+def _star_velocity(db: Session, item: dict[str, Any]) -> Optional[float]:
+    eid = item.get("entity_id")
+    if not eid:
+        return None
+    try:
+        vel = compute_velocity(db, int(eid), "stars", 24)
+        d = vel.get("delta")
+        return float(d) if d is not None else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+async def _collect_github_stats(
+    db: Session,
+    aliases: list[str],
+    window_start: datetime,
+    window_end: datetime,
+) -> dict[str, Any]:
     from app.adapters.github import GitHubRateLimitError, search_github_repos
 
     queries = [normalize_candidate_text(a) for a in aliases[:3]]
@@ -235,37 +331,75 @@ async def _collect_github_stats(db: Session, aliases: list[str]) -> dict[str, An
             if eid and eid not in seen_ids:
                 seen_ids.add(eid)
                 all_items.append(item)
-    # Persist ALL raw discovery results for audit
     if all_items:
         persist_github_discovery(db, all_items)
 
     relevant = [i for i in all_items if _github_item_relevant(i, aliases)]
-    owners = {i.get("owner") for i in relevant if i.get("owner")}
-    total_stars = sum(int(i.get("stars") or 0) for i in relevant)
-    max_vel = None
+    post_t0: list[dict[str, Any]] = []
+    preexisting = 0
+    unknown_time = 0
     for i in relevant:
-        eid = i.get("entity_id")
-        if not eid:
+        kind = _classify_timing(i.get("created_at"), window_start, window_end)
+        i["_timing_class"] = kind
+        if kind == "POST_T0":
+            post_t0.append(i)
+        elif kind == "PREEXISTING":
+            preexisting += 1
+        else:
+            unknown_time += 1
+
+    owners_post = {i.get("owner") for i in post_t0 if i.get("owner")}
+    total_stars_post = sum(int(i.get("stars") or 0) for i in post_t0)
+    max_vel = None
+    for i in post_t0:
+        d = _star_velocity(db, i)
+        if d is None:
             continue
-        try:
-            vel = compute_velocity(db, int(eid), "stars", 24)
-            d = vel.get("delta")
-            if d is None:
-                continue
-            max_vel = float(d) if max_vel is None else max(max_vel, float(d))
-        except Exception:  # noqa: BLE001
-            continue
+        max_vel = d if max_vel is None else max(max_vel, d)
+
     return {
         "github_search_result_count_raw": len(all_items),
         "github_repo_count_relevant": len(relevant),
-        "github_repo_count": len(relevant),  # radar / platform use relevant
-        "github_independent_owner_count": len(owners),
-        "github_total_stars": total_stars,
+        "github_repo_count_post_t0": len(post_t0),
+        "github_repo_count_preexisting": preexisting,
+        "github_repo_count_unknown_time": unknown_time,
+        "github_independent_owner_count_post_t0": len(owners_post),
+        "github_total_stars_post_t0": total_stars_post,
+        "github_max_star_velocity_24h_post_t0": max_vel,
+        # Formation / radar / platform activation use post-T0 only
+        "github_repo_count": len(post_t0),
+        "github_independent_owner_count": len(owners_post),
+        "github_total_stars": total_stars_post,
         "github_max_star_velocity_24h": max_vel,
     }
 
 
-def _collect_hf_stats(db: Session, aliases: list[str]) -> dict[str, Any]:
+def _partition_hf_timing(
+    items: list[dict[str, Any]],
+    window_start: datetime,
+    window_end: datetime,
+) -> tuple[list[dict[str, Any]], int, int]:
+    post: list[dict[str, Any]] = []
+    preexisting = 0
+    unknown = 0
+    for i in items:
+        kind = _classify_timing(i.get("created_at"), window_start, window_end)
+        i["_timing_class"] = kind
+        if kind == "POST_T0":
+            post.append(i)
+        elif kind == "PREEXISTING":
+            preexisting += 1
+        else:
+            unknown += 1
+    return post, preexisting, unknown
+
+
+def _collect_hf_stats(
+    db: Session,
+    aliases: list[str],
+    window_start: datetime,
+    window_end: datetime,
+) -> dict[str, Any]:
     from app.adapters.huggingface import search_hf
 
     q = normalize_candidate_text(aliases[0]) if aliases else ""
@@ -296,23 +430,38 @@ def _collect_hf_stats(db: Session, aliases: list[str]) -> dict[str, Any]:
     rel_spaces = [i for i in spaces if _hf_item_relevant(i, aliases)]
     rel_datasets = [i for i in datasets if _hf_item_relevant(i, aliases)]
 
-    authors: set[str] = set()
-    for items in (rel_models, rel_spaces, rel_datasets):
+    post_m, pre_m, unk_m = _partition_hf_timing(rel_models, window_start, window_end)
+    post_s, pre_s, unk_s = _partition_hf_timing(rel_spaces, window_start, window_end)
+    post_d, pre_d, unk_d = _partition_hf_timing(rel_datasets, window_start, window_end)
+
+    authors_post: set[str] = set()
+    for items in (post_m, post_s, post_d):
         for i in items:
             if i.get("author"):
-                authors.add(str(i["author"]))
+                authors_post.add(str(i["author"]))
+
     return {
         "hf_model_count_raw": len(models),
         "hf_model_count_relevant": len(rel_models),
+        "hf_model_count_post_t0": len(post_m),
+        "hf_model_count_preexisting": pre_m,
+        "hf_model_count_unknown_time": unk_m,
         "hf_space_count_raw": len(spaces),
         "hf_space_count_relevant": len(rel_spaces),
+        "hf_space_count_post_t0": len(post_s),
+        "hf_space_count_preexisting": pre_s,
+        "hf_space_count_unknown_time": unk_s,
         "hf_dataset_count_raw": len(datasets),
         "hf_dataset_count_relevant": len(rel_datasets),
-        # radar / platform activation use relevant
-        "hf_model_count": len(rel_models),
-        "hf_space_count": len(rel_spaces),
-        "hf_dataset_count": len(rel_datasets),
-        "hf_independent_author_count": len(authors),
+        "hf_dataset_count_post_t0": len(post_d),
+        "hf_dataset_count_preexisting": pre_d,
+        "hf_dataset_count_unknown_time": unk_d,
+        "hf_independent_author_count_post_t0": len(authors_post),
+        # Radar / platform activation use post-T0 only
+        "hf_model_count": len(post_m),
+        "hf_space_count": len(post_s),
+        "hf_dataset_count": len(post_d),
+        "hf_independent_author_count": len(authors_post),
     }
 
 
@@ -340,9 +489,10 @@ def _source_detachment_level(
     high_quality: int,
     platform_count: int,
 ) -> str:
+    """Bootstrap source detachment; origin account never satisfies amplifier thresholds."""
     if independent_accounts <= 0 and platform_count <= 1:
         return "NONE"
-    if independent_accounts <= 1 and platform_count <= 1:
+    if independent_accounts == 1 and platform_count <= 1:
         return "WEAK"
     if high_quality >= 3 and platform_count >= 3:
         return "STRONG"
@@ -393,10 +543,19 @@ async def run_checkpoint(db: Session, schedule: CandidateSnapshotSchedule) -> Ca
 
     window_start, window_end = _hype_window(hype, now)
     aliases = _aliases_for(db, hype)
-    x_stats = _collect_x_account_stats(db, hype, aliases, window_start, window_end)
+    origin_id, origin_handle = _origin_account(db, hype)
+    x_stats = _collect_x_account_stats(
+        db,
+        hype,
+        aliases,
+        window_start,
+        window_end,
+        origin_account_id=origin_id,
+        origin_account_handle=origin_handle,
+    )
     hn_stats = _collect_hn_stats(db, aliases, window_start, window_end)
-    gh_stats = await _collect_github_stats(db, aliases)
-    hf_stats = _collect_hf_stats(db, aliases)
+    gh_stats = await _collect_github_stats(db, aliases, window_start, window_end)
+    hf_stats = _collect_hf_stats(db, aliases, window_start, window_end)
     rss_stats = _collect_rss_stats(db, aliases, window_start, window_end)
 
     platforms = []
@@ -404,12 +563,12 @@ async def run_checkpoint(db: Session, schedule: CandidateSnapshotSchedule) -> Ca
         platforms.append("X")
     if hn_stats["hn_matching_story_count"] > 0:
         platforms.append("HN")
-    if gh_stats["github_repo_count_relevant"] > 0:
+    if gh_stats["github_repo_count_post_t0"] > 0:
         platforms.append("GitHub")
     if (
-        hf_stats["hf_model_count_relevant"]
-        + hf_stats["hf_space_count_relevant"]
-        + hf_stats["hf_dataset_count_relevant"]
+        hf_stats["hf_model_count_post_t0"]
+        + hf_stats["hf_space_count_post_t0"]
+        + hf_stats["hf_dataset_count_post_t0"]
     ) > 0:
         platforms.append("Hugging Face")
     if rss_stats["rss_matching_count"] > 0:
@@ -417,7 +576,7 @@ async def run_checkpoint(db: Session, schedule: CandidateSnapshotSchedule) -> Ca
 
     detachment = _source_detachment_level(
         independent_accounts=x_stats["independent_account_count"],
-        high_quality=x_stats["high_quality_amplifier_count"],
+        high_quality=x_stats["high_quality_independent_amplifier_count"],
         platform_count=len(platforms),
     )
 
