@@ -43,10 +43,10 @@ export default function HypeRadarPage() {
                 <th>Age</th>
                 <th>Origin</th>
                 <th>Initial Trigger</th>
-                <th>Indep. Accounts</th>
+                <th>Indep. amplifiers</th>
                 <th>Platforms</th>
-                <th>GitHub</th>
-                <th>HF Spaces</th>
+                <th>GitHub new since T0</th>
+                <th>HF Spaces new since T0</th>
                 <th>HN</th>
                 <th>Last Snapshot</th>
                 <th>Next Checkpoint</th>

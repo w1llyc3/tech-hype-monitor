@@ -327,24 +327,40 @@ def test_historical_checkpoint_skipped_no_snapshot(db_session):
 def test_live_checkpoint_timing_metadata(db_session, monkeypatch):
     hype = _accept_live(db_session, text="I call this LiveTerm", status_id="8501")
 
-    async def fake_gh(db, aliases):
+    async def fake_gh(*args, **kwargs):
         return {
             "github_search_result_count_raw": 0,
             "github_repo_count_relevant": 0,
+            "github_repo_count_post_t0": 0,
+            "github_repo_count_preexisting": 0,
+            "github_repo_count_unknown_time": 0,
+            "github_independent_owner_count_post_t0": 0,
+            "github_total_stars_post_t0": 0,
+            "github_max_star_velocity_24h_post_t0": None,
             "github_repo_count": 0,
             "github_independent_owner_count": 0,
             "github_total_stars": 0,
             "github_max_star_velocity_24h": None,
         }
 
-    def fake_hf(db, aliases):
+    def fake_hf(*args, **kwargs):
         return {
             "hf_model_count_raw": 0,
             "hf_model_count_relevant": 0,
+            "hf_model_count_post_t0": 0,
+            "hf_model_count_preexisting": 0,
+            "hf_model_count_unknown_time": 0,
             "hf_space_count_raw": 0,
             "hf_space_count_relevant": 0,
+            "hf_space_count_post_t0": 0,
+            "hf_space_count_preexisting": 0,
+            "hf_space_count_unknown_time": 0,
             "hf_dataset_count_raw": 0,
             "hf_dataset_count_relevant": 0,
+            "hf_dataset_count_post_t0": 0,
+            "hf_dataset_count_preexisting": 0,
+            "hf_dataset_count_unknown_time": 0,
+            "hf_independent_author_count_post_t0": 0,
             "hf_model_count": 0,
             "hf_space_count": 0,
             "hf_dataset_count": 0,

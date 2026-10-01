@@ -313,6 +313,9 @@ class HypeCandidateDetailOut(BaseModel):
     last_snapshot_at: Optional[datetime] = None
     next_checkpoint: Optional[str] = None
     next_checkpoint_due_at: Optional[datetime] = None
+    github_repos_preexisting: Optional[int] = None
+    hf_spaces_preexisting: Optional[int] = None
+    total_monitored_accounts: Optional[int] = None
 
 
 class CandidateSnapshotOut(BaseModel):

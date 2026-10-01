@@ -129,6 +129,9 @@ export type HypeCandidate = {
   last_snapshot_at?: string | null;
   next_checkpoint?: string | null;
   next_checkpoint_due_at?: string | null;
+  github_repos_preexisting?: number | null;
+  hf_spaces_preexisting?: number | null;
+  total_monitored_accounts?: number | null;
 };
 
 export type TimelineItem = {
