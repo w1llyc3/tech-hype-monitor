@@ -152,6 +152,24 @@ export type CandidateSnapshot = {
   created_at: string;
 };
 
+export type SnapshotSchedule = {
+  id: number;
+  hype_id: number;
+  checkpoint: string;
+  due_at: string;
+  completed_at: string | null;
+  status: string;
+  attempts: number;
+  last_error: string | null;
+  skip_reason: string | null;
+  created_at: string;
+  updated_at: string;
+  snapshot_at: string | null;
+  late_by_seconds: number | null;
+  timing_quality: string | null;
+  scheduled_due_at: string | null;
+};
+
 export type ManualIngestResult = {
   raw_event_id: number;
   account_id: number | null;
@@ -303,6 +321,10 @@ export function getHypeTimeline(id: number) {
 
 export function getHypeSnapshots(id: number) {
   return apiGet<CandidateSnapshot[]>(`/api/hype-candidates/${id}/snapshots`);
+}
+
+export function getHypeSchedule(id: number) {
+  return apiGet<SnapshotSchedule[]>(`/api/hype-candidates/${id}/schedule`);
 }
 
 export function manualXIngest(body: Record<string, unknown>) {

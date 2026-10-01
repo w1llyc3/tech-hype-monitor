@@ -5,9 +5,11 @@ import { FormEvent, useEffect, useState } from "react";
 import {
   CandidateSnapshot,
   HypeCandidate,
+  SnapshotSchedule,
   TimelineItem,
   addHypeAlias,
   getHypeCandidate,
+  getHypeSchedule,
   getHypeSnapshots,
   getHypeTimeline,
   patchHypeCandidate,
@@ -18,11 +20,19 @@ function fmt(ts: string | null | undefined) {
   return new Date(ts).toLocaleString();
 }
 
+function statusLabel(row: SnapshotSchedule) {
+  if (row.status === "SKIPPED") {
+    return `SKIPPED — ${row.skip_reason || "UNKNOWN"}`;
+  }
+  return row.status;
+}
+
 export default function HypeDetailPage({ params }: { params: { id: string } }) {
   const id = Number(params.id);
   const [hype, setHype] = useState<HypeCandidate | null>(null);
   const [timeline, setTimeline] = useState<TimelineItem[]>([]);
   const [snapshots, setSnapshots] = useState<CandidateSnapshot[]>([]);
+  const [schedule, setSchedule] = useState<SnapshotSchedule[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [alias, setAlias] = useState("");
   const [status, setStatus] = useState("");
@@ -37,6 +47,7 @@ export default function HypeDetailPage({ params }: { params: { id: string } }) {
       setPlain(h.plain_english || "");
       setTimeline(await getHypeTimeline(id));
       setSnapshots(await getHypeSnapshots(id));
+      setSchedule(await getHypeSchedule(id));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -157,12 +168,16 @@ export default function HypeDetailPage({ params }: { params: { id: string } }) {
             <div className="stat">{String(lastMeta.hn_matching_story_count ?? "—")}</div>
           </div>
           <div>
-            <div className="stat-label">GitHub repos</div>
-            <div className="stat">{String(lastMeta.github_repo_count ?? "—")}</div>
+            <div className="stat-label">GitHub repos (relevant)</div>
+            <div className="stat">
+              {String(lastMeta.github_repo_count_relevant ?? lastMeta.github_repo_count ?? "—")}
+            </div>
           </div>
           <div>
-            <div className="stat-label">HF spaces</div>
-            <div className="stat">{String(lastMeta.hf_space_count ?? "—")}</div>
+            <div className="stat-label">HF spaces (relevant)</div>
+            <div className="stat">
+              {String(lastMeta.hf_space_count_relevant ?? lastMeta.hf_space_count ?? "—")}
+            </div>
           </div>
           <div>
             <div className="stat-label">Detachment</div>
@@ -207,34 +222,75 @@ export default function HypeDetailPage({ params }: { params: { id: string } }) {
       </section>
 
       <section className="panel" style={{ marginTop: 16 }}>
+        <h2>Checkpoint schedule</h2>
+        <div className="table-wrap">
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Checkpoint</th>
+                <th>Status</th>
+                <th>Target due</th>
+                <th>Collected at</th>
+                <th>Late by (s)</th>
+                <th>Timing quality</th>
+              </tr>
+            </thead>
+            <tbody>
+              {schedule.map((s) => (
+                <tr key={s.id}>
+                  <td>{s.checkpoint}</td>
+                  <td>{statusLabel(s)}</td>
+                  <td className="mono">{fmt(s.due_at)}</td>
+                  <td className="mono">
+                    {s.status === "COMPLETED" ? fmt(s.snapshot_at || s.completed_at) : "—"}
+                  </td>
+                  <td>{s.status === "COMPLETED" ? s.late_by_seconds ?? "—" : "—"}</td>
+                  <td>{s.status === "COMPLETED" ? s.timing_quality || "—" : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {schedule.length === 0 && <p className="empty">No schedule rows.</p>}
+      </section>
+
+      <section className="panel" style={{ marginTop: 16 }}>
         <h2>Snapshot history</h2>
         <div className="table-wrap">
           <table className="data">
             <thead>
               <tr>
                 <th>Checkpoint</th>
-                <th>At</th>
+                <th>Collected at</th>
                 <th>Mentions</th>
                 <th>Indep. accounts</th>
                 <th>Platforms</th>
-                <th>HQ amplifiers</th>
+                <th>Timing</th>
               </tr>
             </thead>
             <tbody>
-              {snapshots.map((s) => (
-                <tr key={s.id}>
-                  <td>{s.checkpoint || "—"}</td>
-                  <td className="mono">{fmt(s.snapshot_at)}</td>
-                  <td>{s.mention_count ?? "—"}</td>
-                  <td>{s.independent_account_count ?? "—"}</td>
-                  <td>{s.platform_count ?? "—"}</td>
-                  <td>{s.high_quality_amplifier_count ?? "—"}</td>
-                </tr>
-              ))}
+              {snapshots.map((s) => {
+                const meta = s.metadata_json || {};
+                return (
+                  <tr key={s.id}>
+                    <td>{s.checkpoint || "—"}</td>
+                    <td className="mono">{fmt(s.snapshot_at)}</td>
+                    <td>{s.mention_count ?? "—"}</td>
+                    <td>{s.independent_account_count ?? "—"}</td>
+                    <td>{s.platform_count ?? "—"}</td>
+                    <td>
+                      {String(meta.timing_quality ?? "—")}
+                      {meta.late_by_seconds != null ? ` (+${String(meta.late_by_seconds)}s)` : ""}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
-        {snapshots.length === 0 && <p className="empty">No snapshots yet. Checkpoints run on schedule.</p>}
+        {snapshots.length === 0 && (
+          <p className="empty">No snapshots yet. SKIPPED historical checkpoints never invent data.</p>
+        )}
       </section>
     </main>
   );

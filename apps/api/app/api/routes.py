@@ -28,6 +28,7 @@ from app.api.schemas import (
     PromoteEventIn,
     RawEventOut,
     RejectSignalIn,
+    SnapshotScheduleOut,
     SourceHealthOut,
     SourceOut,
     TimelineItemOut,
@@ -827,6 +828,47 @@ def get_hype_snapshots(hype_id: int, db: Session = Depends(get_db)) -> list[Cand
         .order_by(CandidateSnapshot.snapshot_at.asc())
     ).all()
     return [CandidateSnapshotOut.model_validate(r) for r in rows]
+
+
+@router.get("/hype-candidates/{hype_id}/schedule", response_model=list[SnapshotScheduleOut])
+def get_hype_schedule(hype_id: int, db: Session = Depends(get_db)) -> list[SnapshotScheduleOut]:
+    hype = db.get(HypeCandidate, hype_id)
+    if not hype:
+        raise HTTPException(status_code=404, detail="Hype candidate not found")
+    rows = db.scalars(
+        select(CandidateSnapshotSchedule)
+        .where(CandidateSnapshotSchedule.hype_id == hype_id)
+        .order_by(CandidateSnapshotSchedule.due_at.asc())
+    ).all()
+    out: list[SnapshotScheduleOut] = []
+    for row in rows:
+        snap = db.scalar(
+            select(CandidateSnapshot).where(
+                CandidateSnapshot.hype_id == hype_id,
+                CandidateSnapshot.checkpoint == row.checkpoint,
+            )
+        )
+        meta = (snap.metadata_json if snap else None) or {}
+        out.append(
+            SnapshotScheduleOut(
+                id=row.id,
+                hype_id=row.hype_id,
+                checkpoint=row.checkpoint,
+                due_at=row.due_at,
+                completed_at=row.completed_at,
+                status=row.status,
+                attempts=row.attempts,
+                last_error=row.last_error,
+                skip_reason=row.skip_reason,
+                created_at=row.created_at,
+                updated_at=row.updated_at,
+                snapshot_at=snap.snapshot_at if snap else None,
+                late_by_seconds=meta.get("late_by_seconds"),
+                timing_quality=meta.get("timing_quality"),
+                scheduled_due_at=meta.get("scheduled_due_at"),
+            )
+        )
+    return out
 
 
 @router.post("/events/{event_id}/promote", response_model=CandidateSignalOut)

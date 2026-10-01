@@ -333,6 +333,27 @@ class CandidateSnapshotOut(BaseModel):
     created_at: datetime
 
 
+class SnapshotScheduleOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    hype_id: int
+    checkpoint: str
+    due_at: datetime
+    completed_at: Optional[datetime] = None
+    status: str
+    attempts: int = 0
+    last_error: Optional[str] = None
+    skip_reason: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    # joined from completed snapshot when available
+    snapshot_at: Optional[datetime] = None
+    late_by_seconds: Optional[int] = None
+    timing_quality: Optional[str] = None
+    scheduled_due_at: Optional[str] = None
+
+
 class TimelineItemOut(BaseModel):
     kind: str
     at: datetime
