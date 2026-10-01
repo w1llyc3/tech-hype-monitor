@@ -265,14 +265,15 @@ def test_candidate_review_flow(db_session):
         select(CandidateSnapshotSchedule).where(CandidateSnapshotSchedule.hype_id == hype.id)
     ).all()
     assert {s.checkpoint for s in schedule} == {"1H", "6H", "24H", "72H", "7D", "30D"}
-    # overdue checkpoints are due immediately (past due_at), not faked as completed
+    # historical overdue checkpoints are SKIPPED — no fake snapshots
     overdue = [
         s
         for s in schedule
         if ensure_aware(s.due_at) and ensure_aware(s.due_at) < datetime.now(timezone.utc)
     ]
     assert overdue
-    assert all(s.status == "PENDING" for s in overdue)
+    assert all(s.status == "SKIPPED" for s in overdue)
+    assert all(s.skip_reason == "MISSED_BEFORE_TRACKING" for s in overdue)
 
     # same-name second cycle allowed
     r2 = manual_ingest(
@@ -326,17 +327,20 @@ def test_candidate_review_flow(db_session):
 
 def test_snapshots_once_and_isolation(db_session, monkeypatch):
     _account(db_session)
+    # Recent T0 so checkpoints stay PENDING (not historical SKIPPED)
     r = manual_ingest(
         db_session,
         url="https://x.com/karpathy/status/777",
         handle="karpathy",
         text="I call this SnapshotTerm",
-        posted_at=datetime.now(timezone.utc) - timedelta(hours=2),
+        posted_at=datetime.now(timezone.utc) - timedelta(minutes=5),
     )
     hype = accept_as_new_hype(db_session, r.candidate_signal_ids[0])
 
     async def fake_gh(db, aliases):
         return {
+            "github_search_result_count_raw": 0,
+            "github_repo_count_relevant": 0,
             "github_repo_count": 0,
             "github_independent_owner_count": 0,
             "github_total_stars": 0,
@@ -345,6 +349,12 @@ def test_snapshots_once_and_isolation(db_session, monkeypatch):
 
     def fake_hf(db, aliases):
         return {
+            "hf_model_count_raw": 0,
+            "hf_model_count_relevant": 0,
+            "hf_space_count_raw": 0,
+            "hf_space_count_relevant": 0,
+            "hf_dataset_count_raw": 0,
+            "hf_dataset_count_relevant": 0,
             "hf_model_count": 0,
             "hf_space_count": 0,
             "hf_dataset_count": 0,
@@ -362,9 +372,16 @@ def test_snapshots_once_and_isolation(db_session, monkeypatch):
             CandidateSnapshotSchedule.checkpoint == "1H",
         )
     ).one()
+    assert due.status == "PENDING"
+    # Make it due now (late processing allowed)
+    due.due_at = datetime.now(timezone.utc) - timedelta(minutes=1)
+    db_session.commit()
+
     snap = asyncio.run(run_checkpoint(db_session, due))
     assert snap.checkpoint == "1H"
     assert snap.metadata_json is not None
+    assert "late_by_seconds" in snap.metadata_json
+    assert "timing_quality" in snap.metadata_json
     # unknown metrics remain NULL where not computed
     assert snap.cross_cluster_count is None
     assert snap.source_detachment is None

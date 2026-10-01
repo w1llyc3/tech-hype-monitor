@@ -92,6 +92,10 @@ GENERIC_CAPS = {
     "ID",
     "PDF",
     "FAQ",
+    "NEW",
+    "OLD",
+    "YES",
+    "NO",
 }
 
 

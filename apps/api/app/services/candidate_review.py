@@ -54,11 +54,18 @@ def create_snapshot_schedule(db: Session, hype: HypeCandidate, t0: datetime) -> 
             rows.append(existing)
             continue
         due = t0 + delta
+        if due < now:
+            status = "SKIPPED"
+            skip_reason = "MISSED_BEFORE_TRACKING"
+        else:
+            status = "PENDING"
+            skip_reason = None
         row = CandidateSnapshotSchedule(
             hype_id=hype.id,
             checkpoint=name,
             due_at=due,
-            status="PENDING",
+            status=status,
+            skip_reason=skip_reason,
             attempts=0,
             created_at=now,
             updated_at=now,
