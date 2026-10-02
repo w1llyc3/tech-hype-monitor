@@ -1,0 +1,60 @@
+{
+  "schema_version": "1.0",
+  "case_id": "vibe-coding",
+  "display_name": "Vibe Coding",
+  "fixture_status": "READY",
+  "t0": "2025-02-06T00:00:00Z",
+  "evaluation": {
+    "reference_pattern": "NAMING_FIRST",
+    "notes": "Evaluation-only. Synthetic naming-first fixture for product tests — not a claim about historical precision."
+  },
+  "events": [
+    {
+      "event_id": "vc-1",
+      "platform": "x",
+      "source_type": "x_manual",
+      "account_handle": "karpathy",
+      "account_role": "NARRATIVE_NAMER",
+      "universe_tier": "CORE",
+      "monitor_priority": "P0",
+      "occurred_at": "2025-02-06T00:00:00Z",
+      "text": "There's a new kind of coding I call vibe coding...",
+      "url": "https://x.com/karpathy/status/synthetic-vc-1",
+      "signal_type": "NEW_TERM",
+      "evidence_phase": "FORMATION"
+    },
+    {
+      "event_id": "vc-2",
+      "platform": "x",
+      "source_type": "x_manual",
+      "account_handle": "simonw",
+      "account_role": "EXPERT_VALIDATOR",
+      "universe_tier": "CORE",
+      "monitor_priority": "P0",
+      "occurred_at": "2025-02-06T08:00:00Z",
+      "text": "Trying vibe coding on a side project",
+      "url": "https://x.com/simonw/status/synthetic-vc-2",
+      "signal_type": "NEW_TERM",
+      "evidence_phase": "FORMATION"
+    },
+    {
+      "event_id": "vc-3",
+      "platform": "hn",
+      "source_type": "hacker_news",
+      "occurred_at": "2025-02-06T12:00:00Z",
+      "text": "Vibe coding",
+      "url": "https://news.ycombinator.com/item?id=synthetic-vc-3",
+      "evidence_phase": "FORMATION"
+    },
+    {
+      "event_id": "vc-4",
+      "platform": "github",
+      "source_type": "REPO",
+      "occurred_at": "2025-02-07T00:00:00Z",
+      "text": "vibe-coding toolkit",
+      "url": "https://github.com/example/vibe-coding",
+      "evidence_phase": "FORMATION"
+    }
+  ],
+  "notes": ["Synthetic READY fixture for replay/tests. Do not treat timestamps as audited history."]
+}

@@ -83,6 +83,19 @@ export default function SourceHealthPage() {
       <p className="sub">
         Adapter state only. A quiet period with no new events is not treated as failure.
       </p>
+      <section className="panel" style={{ marginBottom: 16 }}>
+        <h2>Coverage panel</h2>
+        <ul>
+          <li>Official / RSS — Healthy or Stale from adapter success timestamps</li>
+          <li>HN — Healthy or Stale</li>
+          <li>GitHub — Healthy or Limited (rate limits)</li>
+          <li>Hugging Face — Healthy or Limited</li>
+          <li>
+            <strong>X — Manual coverage</strong>: missing automation is never negative hype evidence.
+            Use last ingested post times on Accounts / X Ingest.
+          </li>
+        </ul>
+      </section>
       {error && <p className="sub">Error: {error}</p>}
       <div className="table-wrap">
         <table className="data">

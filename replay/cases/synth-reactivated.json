@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0",
+  "case_id": "synth-reactivated",
+  "display_name": "Synthetic Reactivated Term",
+  "fixture_status": "READY",
+  "t0": "2024-03-01T00:00:00Z",
+  "evaluation": {
+    "reference_pattern": "REACTIVATED_TERM",
+    "notes": "Evaluation-only."
+  },
+  "events": [
+    {
+      "event_id": "sr-0",
+      "platform": "github",
+      "source_type": "PREEXISTING_REPO",
+      "occurred_at": "2020-01-01T00:00:00Z",
+      "text": "old-world-models",
+      "timing_class": "PREEXISTING",
+      "evidence_phase": "PRE_HYPE"
+    },
+    {
+      "event_id": "sr-1",
+      "platform": "x",
+      "source_type": "x_manual",
+      "account_handle": "researcher",
+      "account_role": "RESEARCH_FRAMER",
+      "occurred_at": "2024-03-01T00:00:00Z",
+      "text": "World models are back",
+      "signal_type": "NEW_TERM",
+      "evidence_phase": "FORMATION"
+    },
+    {
+      "event_id": "sr-2",
+      "platform": "hn",
+      "source_type": "hacker_news",
+      "occurred_at": "2024-03-01T06:00:00Z",
+      "text": "World models paper",
+      "evidence_phase": "FORMATION"
+    },
+    {
+      "event_id": "sr-3",
+      "platform": "github",
+      "source_type": "REPO",
+      "occurred_at": "2024-03-02T00:00:00Z",
+      "text": "new-world-models-2024",
+      "evidence_phase": "FORMATION"
+    },
+    {
+      "event_id": "sr-4",
+      "platform": "x",
+      "source_type": "x_manual",
+      "account_handle": "other",
+      "account_role": "EXPERT_VALIDATOR",
+      "universe_tier": "CORE",
+      "monitor_priority": "P0",
+      "occurred_at": "2024-03-01T12:00:00Z",
+      "text": "adopting world models framing",
+      "evidence_phase": "FORMATION"
+    }
+  ],
+  "notes": []
+}

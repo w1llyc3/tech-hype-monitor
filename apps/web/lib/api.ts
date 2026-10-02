@@ -132,6 +132,65 @@ export type HypeCandidate = {
   github_repos_preexisting?: number | null;
   hf_spaces_preexisting?: number | null;
   total_monitored_accounts?: number | null;
+  formation_stage?: string | null;
+  trend_direction?: string | null;
+  formation_pattern_suggested?: string | null;
+  pattern_confidence?: string | null;
+  why_moving?: string[];
+  missing_evidence?: string[];
+  last_meaningful_change?: string | null;
+  radar_group?: string | null;
+  review_flags?: string[];
+};
+
+export type TrendAssessment = {
+  id: number;
+  hype_id: number;
+  snapshot_id: number | null;
+  assessed_at: string;
+  formation_stage: string;
+  trend_direction: string;
+  formation_pattern: string;
+  pattern_confidence: string | null;
+  reasons_json: Record<string, unknown> | null;
+  missing_evidence_json: Record<string, unknown> | null;
+  metrics_json: Record<string, unknown> | null;
+  engine_version: string;
+  is_manual_override: boolean;
+  created_at: string;
+};
+
+export type ReplayCaseListItem = {
+  case_id: string;
+  display_name: string | null;
+  fixture_status: string | null;
+  t0: string | null;
+  reference_pattern: string | null;
+  evaluation_notes: string | null;
+  event_count: number;
+};
+
+export type ReplayCheckpoint = {
+  case: string;
+  checkpoint: string;
+  cutoff: string | null;
+  visible_evidence_count: number;
+  origin_source: string | null;
+  origin_account: string | null;
+  independent_amplifiers: number;
+  active_platforms: string[];
+  post_t0_github: number;
+  post_t0_hf: number;
+  hn_evidence: number;
+  source_detachment: string | null;
+  suggested_formation_stage: string | null;
+  suggested_trend_direction: string | null;
+  suggested_formation_pattern: string | null;
+  pattern_confidence: string | null;
+  pattern_evidence: string[];
+  missing_evidence: Record<string, unknown>;
+  incomplete_evidence: boolean;
+  evaluation_comparison: Record<string, unknown> | null;
 };
 
 export type TimelineItem = {
@@ -328,6 +387,41 @@ export function getHypeSnapshots(id: number) {
 
 export function getHypeSchedule(id: number) {
   return apiGet<SnapshotSchedule[]>(`/api/hype-candidates/${id}/schedule`);
+}
+
+export function getTrendAssessments(id: number) {
+  return apiGet<TrendAssessment[]>(`/api/hype-candidates/${id}/trend-assessments`);
+}
+
+export function postTrendOverride(
+  id: number,
+  body: { formation_stage?: string; formation_pattern?: string }
+) {
+  return apiSend<TrendAssessment>(`/api/hype-candidates/${id}/trend-override`, "POST", body);
+}
+
+export function exportResearchBundle(id: number) {
+  return apiSend<{ path: string; prompt: string }>(
+    `/api/hype-candidates/${id}/research-bundle`,
+    "POST"
+  );
+}
+
+export function getResearchPrompt(id: number) {
+  return apiGet<{ prompt: string }>(`/api/hype-candidates/${id}/research-prompt`);
+}
+
+export function getReplayCases() {
+  return apiGet<ReplayCaseListItem[]>("/api/replay/cases");
+}
+
+export function getReplayCase(caseId: string, params: Record<string, string | undefined> = {}) {
+  const qs = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v) qs.set(k, v);
+  });
+  const suffix = qs.toString() ? `?${qs}` : "";
+  return apiGet<ReplayCheckpoint[]>(`/api/replay/cases/${encodeURIComponent(caseId)}${suffix}`);
 }
 
 export function manualXIngest(body: Record<string, unknown>) {

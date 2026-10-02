@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "case_id": "example-case",
+  "display_name": "Example Case",
+  "fixture_status": "NEEDS_RESEARCH",
+  "t0": null,
+  "evaluation": {
+    "reference_pattern": null,
+    "notes": "Evaluation-only. The trend engine must never read this block."
+  },
+  "events": [],
+  "notes": [
+    "Do not fabricate timestamps or source URLs.",
+    "Use only frozen evidence observable by the replay cutoff."
+  ]
+}

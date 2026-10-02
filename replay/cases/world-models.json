@@ -1,0 +1,16 @@
+﻿{
+  "schema_version": "1.0",
+  "case_id": "world-models",
+  "display_name": "World Models",
+  "fixture_status": "NEEDS_RESEARCH",
+  "t0": null,
+  "evaluation": {
+    "reference_pattern": null,
+    "notes": "Evaluation-only. Do not fabricate timestamps or text. Research with ChatGPT Pro, then freeze verified evidence."
+  },
+  "events": [],
+  "notes": [
+    "Mark READY only when timestamp + source URL are present.",
+    "Cursor builds product; ChatGPT Pro assists manual research — no API."
+  ]
+}
