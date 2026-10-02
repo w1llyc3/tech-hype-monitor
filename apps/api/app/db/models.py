@@ -222,6 +222,29 @@ class CandidateSnapshotSchedule(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class CandidateTrendAssessment(Base):
+    __tablename__ = "candidate_trend_assessments"
+    __table_args__ = (
+        Index("ix_candidate_trend_assessments_hype_assessed", "hype_id", "assessed_at"),
+        Index("ix_candidate_trend_assessments_snapshot_id", "snapshot_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    hype_id: Mapped[int] = mapped_column(ForeignKey("hype_candidates.id"), nullable=False)
+    snapshot_id: Mapped[Optional[int]] = mapped_column(ForeignKey("candidate_snapshots.id"))
+    assessed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    formation_stage: Mapped[str] = mapped_column(String(64), nullable=False)
+    trend_direction: Mapped[str] = mapped_column(String(64), nullable=False)
+    formation_pattern: Mapped[str] = mapped_column(String(64), nullable=False)
+    pattern_confidence: Mapped[Optional[str]] = mapped_column(String(32))
+    reasons_json: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON)
+    missing_evidence_json: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON)
+    metrics_json: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON)
+    engine_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    is_manual_override: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class Evidence(Base):
     __tablename__ = "evidence"
 

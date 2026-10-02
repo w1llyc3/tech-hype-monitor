@@ -316,6 +316,77 @@ class HypeCandidateDetailOut(BaseModel):
     github_repos_preexisting: Optional[int] = None
     hf_spaces_preexisting: Optional[int] = None
     total_monitored_accounts: Optional[int] = None
+    formation_stage: Optional[str] = None
+    trend_direction: Optional[str] = None
+    formation_pattern_suggested: Optional[str] = None
+    pattern_confidence: Optional[str] = None
+    why_moving: list[str] = []
+    missing_evidence: list[str] = []
+    last_meaningful_change: Optional[str] = None
+    radar_group: Optional[str] = None
+    review_flags: list[str] = []
+
+
+class TrendAssessmentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    hype_id: int
+    snapshot_id: Optional[int] = None
+    assessed_at: datetime
+    formation_stage: str
+    trend_direction: str
+    formation_pattern: str
+    pattern_confidence: Optional[str] = None
+    reasons_json: Optional[dict[str, Any]] = None
+    missing_evidence_json: Optional[dict[str, Any]] = None
+    metrics_json: Optional[dict[str, Any]] = None
+    engine_version: str
+    is_manual_override: bool
+    created_at: datetime
+
+
+class TrendOverrideIn(BaseModel):
+    formation_stage: Optional[str] = None
+    formation_pattern: Optional[str] = None
+
+
+class ResearchBundleOut(BaseModel):
+    path: str
+    prompt: str
+
+
+class ReplayCaseListItemOut(BaseModel):
+    case_id: str
+    display_name: Optional[str] = None
+    fixture_status: Optional[str] = None
+    t0: Optional[str] = None
+    reference_pattern: Optional[str] = None
+    evaluation_notes: Optional[str] = None
+    event_count: int = 0
+
+
+class ReplayCheckpointOut(BaseModel):
+    case: str
+    checkpoint: str
+    cutoff: Optional[str] = None
+    visible_evidence_count: int = 0
+    origin_source: Optional[str] = None
+    origin_account: Optional[str] = None
+    independent_amplifiers: int = 0
+    active_platforms: list[str] = []
+    post_t0_github: int = 0
+    post_t0_hf: int = 0
+    hn_evidence: int = 0
+    source_detachment: Optional[str] = None
+    suggested_formation_stage: Optional[str] = None
+    suggested_trend_direction: Optional[str] = None
+    suggested_formation_pattern: Optional[str] = None
+    pattern_confidence: Optional[str] = None
+    pattern_evidence: list[str] = []
+    missing_evidence: dict[str, Any] = {}
+    incomplete_evidence: bool = False
+    evaluation_comparison: Optional[dict[str, Any]] = None
 
 
 class CandidateSnapshotOut(BaseModel):

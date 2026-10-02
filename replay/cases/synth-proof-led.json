@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "case_id": "synth-proof-led",
+  "display_name": "Synthetic Proof Led",
+  "fixture_status": "READY",
+  "t0": "2024-02-01T00:00:00Z",
+  "evaluation": {
+    "reference_pattern": "PROOF_LED",
+    "notes": "Evaluation-only."
+  },
+  "events": [
+    {
+      "event_id": "spl-1",
+      "platform": "x",
+      "source_type": "x_manual",
+      "account_handle": "builder",
+      "account_role": "PROOF_AMPLIFIER",
+      "occurred_at": "2024-02-01T00:00:00Z",
+      "text": "Working demo dropped",
+      "signal_type": "PRODUCT_PROOF",
+      "evidence_phase": "FORMATION",
+      "naming_fragmented": true
+    },
+    {
+      "event_id": "spl-2",
+      "platform": "github",
+      "source_type": "DEMO",
+      "occurred_at": "2024-02-01T01:00:00Z",
+      "text": "demo-repo",
+      "evidence_phase": "FORMATION"
+    },
+    {
+      "event_id": "spl-3",
+      "platform": "github",
+      "source_type": "REPO",
+      "occurred_at": "2024-02-01T08:00:00Z",
+      "text": "fork-demo",
+      "evidence_phase": "FORMATION"
+    },
+    {
+      "event_id": "spl-4",
+      "platform": "x",
+      "source_type": "x_manual",
+      "account_handle": "watcher",
+      "account_role": "BUILDER_SCOUT",
+      "occurred_at": "2024-02-01T10:00:00Z",
+      "text": "people call it different names",
+      "naming_fragmented": true,
+      "evidence_phase": "FORMATION"
+    }
+  ],
+  "notes": []
+}

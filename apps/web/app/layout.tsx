@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Tech Hype Monitor",
-  description: "Local-first tech hype monitor — Phase 3 candidate engine",
+  description: "Local-first technology hype & trend intelligence",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -19,6 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/">Dashboard</Link>
             <Link href="/hype-radar">Hype Radar</Link>
             <Link href="/candidate-inbox">Candidate Inbox</Link>
+            <Link href="/replay">Replay</Link>
             <Link href="/x-ingest">X Ingest</Link>
             <Link href="/accounts">Accounts</Link>
             <Link href="/discovery">Discovery</Link>

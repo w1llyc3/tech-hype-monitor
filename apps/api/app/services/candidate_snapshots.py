@@ -627,6 +627,12 @@ async def run_checkpoint(db: Session, schedule: CandidateSnapshotSchedule) -> Ca
         hype.candidate_status = "WATCHING"
     db.commit()
     db.refresh(snap)
+    try:
+        from app.services.trend_assess import assess_snapshot
+
+        assess_snapshot(db, snap)
+    except Exception:  # noqa: BLE001
+        log.exception("Trend assessment failed for snapshot %s", snap.id)
     return snap
 
 

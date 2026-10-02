@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "case_id": "synth-source-only",
+  "display_name": "Synthetic Source Only",
+  "fixture_status": "READY",
+  "t0": "2024-04-01T00:00:00Z",
+  "evaluation": {
+    "reference_pattern": "UNKNOWN",
+    "notes": "Evaluation-only. Expect SEED + INSUFFICIENT_DATA at early checkpoints."
+  },
+  "events": [
+    {
+      "event_id": "sso-1",
+      "platform": "x",
+      "source_type": "x_manual",
+      "account_handle": "lonely",
+      "account_role": "NARRATIVE_NAMER",
+      "occurred_at": "2024-04-01T00:00:00Z",
+      "text": "I call this SoloPhrase",
+      "signal_type": "NEW_TERM",
+      "evidence_phase": "FORMATION"
+    }
+  ],
+  "notes": []
+}

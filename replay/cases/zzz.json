@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "case_id": "zzz",
+  "display_name": "ZZZ",
+  "fixture_status": "READY",
+  "t0": "2025-03-01T00:00:00Z",
+  "evaluation": {
+    "reference_pattern": "EMBEDDED_OBJECT",
+    "notes": "Evaluation-only. Synthetic embedded-object fixture."
+  },
+  "events": [
+    {
+      "event_id": "zzz-1",
+      "platform": "x",
+      "source_type": "x_manual",
+      "account_handle": "object_scout",
+      "account_role": "MODEL_ANOMALY_OBJECT_SCOUT",
+      "universe_tier": "CORE",
+      "monitor_priority": "P0",
+      "occurred_at": "2025-03-01T00:00:00Z",
+      "text": "the agents prefix the page with ZZZ so it is deleted last",
+      "url": "https://x.com/object_scout/status/synthetic-zzz-1",
+      "signal_type": "EMBEDDED_OBJECT",
+      "evidence_phase": "FORMATION"
+    },
+    {
+      "event_id": "zzz-2",
+      "platform": "x",
+      "source_type": "x_manual",
+      "account_handle": "amp_bot",
+      "account_role": "VIRAL_ANOMALY_AMPLIFIER",
+      "universe_tier": "CORE",
+      "monitor_priority": "P1",
+      "occurred_at": "2025-03-01T10:00:00Z",
+      "text": "Everyone is talking about the ZZZ trick",
+      "url": "https://x.com/amp_bot/status/synthetic-zzz-2",
+      "signal_type": "EMBEDDED_OBJECT",
+      "evidence_phase": "FORMATION"
+    }
+  ],
+  "notes": ["Synthetic READY fixture."]
+}

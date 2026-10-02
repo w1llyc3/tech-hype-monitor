@@ -28,11 +28,16 @@ from app.api.schemas import (
     PromoteEventIn,
     RawEventOut,
     RejectSignalIn,
+    ReplayCaseListItemOut,
+    ReplayCheckpointOut,
+    ResearchBundleOut,
     SnapshotScheduleOut,
     SourceHealthOut,
     SourceOut,
     TimelineItemOut,
     TrackedEntityOut,
+    TrendAssessmentOut,
+    TrendOverrideIn,
     VelocityOut,
 )
 from app.core.timeutil import ensure_aware, utcnow
@@ -42,6 +47,7 @@ from app.db.models import (
     CandidateSignal,
     CandidateSnapshot,
     CandidateSnapshotSchedule,
+    CandidateTrendAssessment,
     HypeAlias,
     HypeCandidate,
     MetricObservation,
@@ -71,6 +77,18 @@ from app.services.health import (
 )
 from app.services.metrics import compute_velocity
 from app.services.x_ingest import manual_ingest
+from app.services.trend_assess import (
+    flatten_missing,
+    flatten_reasons,
+    last_meaningful_change,
+    latest_assessment,
+    list_assessments,
+    manual_override,
+    radar_group_for,
+    review_flags,
+)
+from app.services.research_bundle import chatgpt_research_prompt, export_research_bundle
+from app.services.replay import list_cases, replay_case
 
 router = APIRouter(prefix="/api")
 
@@ -569,6 +587,9 @@ def _hype_detail(db: Session, hype: HypeCandidate) -> HypeCandidateDetailOut:
         .limit(1)
     )
     meta = (last_snap.metadata_json if last_snap else None) or {}
+    assessment = latest_assessment(db, hype.id)
+    why = flatten_reasons(assessment)
+    missing = flatten_missing(assessment)
     return HypeCandidateDetailOut(
         id=hype.id,
         canonical_name=hype.canonical_name,
@@ -599,6 +620,15 @@ def _hype_detail(db: Session, hype: HypeCandidate) -> HypeCandidateDetailOut:
         github_repos_preexisting=meta.get("github_repo_count_preexisting"),
         hf_spaces_preexisting=meta.get("hf_space_count_preexisting"),
         total_monitored_accounts=meta.get("total_monitored_account_count"),
+        formation_stage=assessment.formation_stage if assessment else None,
+        trend_direction=assessment.trend_direction if assessment else None,
+        formation_pattern_suggested=assessment.formation_pattern if assessment else None,
+        pattern_confidence=assessment.pattern_confidence if assessment else None,
+        why_moving=why,
+        missing_evidence=missing,
+        last_meaningful_change=last_meaningful_change(assessment),
+        radar_group=radar_group_for(assessment),
+        review_flags=review_flags(assessment),
     )
 
 
@@ -889,6 +919,104 @@ def promote_event(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _signal_out(db, signal)
+
+
+@router.get(
+    "/hype-candidates/{hype_id}/trend-assessments",
+    response_model=list[TrendAssessmentOut],
+)
+def get_trend_assessments(hype_id: int, db: Session = Depends(get_db)) -> list[TrendAssessmentOut]:
+    hype = db.get(HypeCandidate, hype_id)
+    if not hype:
+        raise HTTPException(status_code=404, detail="Hype candidate not found")
+    return [TrendAssessmentOut.model_validate(r) for r in list_assessments(db, hype_id)]
+
+
+@router.post(
+    "/hype-candidates/{hype_id}/trend-override",
+    response_model=TrendAssessmentOut,
+)
+def post_trend_override(
+    hype_id: int, body: TrendOverrideIn, db: Session = Depends(get_db)
+) -> TrendAssessmentOut:
+    try:
+        row = manual_override(
+            db,
+            hype_id,
+            formation_stage=body.formation_stage,
+            formation_pattern=body.formation_pattern,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return TrendAssessmentOut.model_validate(row)
+
+
+@router.post(
+    "/hype-candidates/{hype_id}/research-bundle",
+    response_model=ResearchBundleOut,
+)
+def post_research_bundle(hype_id: int, db: Session = Depends(get_db)) -> ResearchBundleOut:
+    try:
+        path = export_research_bundle(db, hype_id)
+        prompt = chatgpt_research_prompt(db, hype_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return ResearchBundleOut(path=str(path), prompt=prompt)
+
+
+@router.get("/hype-candidates/{hype_id}/research-prompt")
+def get_research_prompt(hype_id: int, db: Session = Depends(get_db)) -> dict[str, str]:
+    try:
+        return {"prompt": chatgpt_research_prompt(db, hype_id)}
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/replay/cases", response_model=list[ReplayCaseListItemOut])
+def get_replay_cases() -> list[ReplayCaseListItemOut]:
+    return [ReplayCaseListItemOut(**row) for row in list_cases()]
+
+
+@router.get("/replay/cases/{case_id}", response_model=list[ReplayCheckpointOut])
+def get_replay_case(
+    case_id: str,
+    checkpoint: Optional[str] = None,
+    cutoff: Optional[str] = None,
+) -> list[ReplayCheckpointOut]:
+    try:
+        cutoff_dt = datetime.fromisoformat(cutoff.replace("Z", "+00:00")) if cutoff else None
+        results = replay_case(case_id, cutoff=cutoff_dt, checkpoint=checkpoint)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    out: list[ReplayCheckpointOut] = []
+    for r in results:
+        out.append(
+            ReplayCheckpointOut(
+                case=r.case_id,
+                checkpoint=r.checkpoint,
+                cutoff=r.cutoff or None,
+                visible_evidence_count=r.visible_evidence_count,
+                origin_source=r.origin_source_account,
+                origin_account=r.origin_source_account,
+                independent_amplifiers=r.independent_amplifiers,
+                active_platforms=list(r.active_platforms),
+                post_t0_github=r.post_t0_github,
+                post_t0_hf=r.post_t0_hf_spaces + r.post_t0_hf_models,
+                hn_evidence=r.hn_evidence,
+                source_detachment=r.source_detachment,
+                suggested_formation_stage=r.suggested_formation_stage,
+                suggested_trend_direction=r.suggested_trend_direction,
+                suggested_formation_pattern=r.suggested_formation_pattern,
+                pattern_confidence=r.pattern_confidence,
+                pattern_evidence=list(r.pattern_evidence),
+                missing_evidence=r.missing_evidence or {},
+                incomplete_evidence=bool((r.metrics or {}).get("evidence_incomplete")),
+                evaluation_comparison=r.evaluation_comparison,
+            )
+        )
+    return out
 
 
 @router.post("/system/process-candidate-snapshots")

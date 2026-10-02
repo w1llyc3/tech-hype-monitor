@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0",
+  "case_id": "synth-naming-first",
+  "display_name": "Synthetic Naming First",
+  "fixture_status": "READY",
+  "t0": "2024-01-01T00:00:00Z",
+  "evaluation": {
+    "reference_pattern": "NAMING_FIRST",
+    "notes": "Evaluation-only."
+  },
+  "events": [
+    {
+      "event_id": "snf-1",
+      "platform": "x",
+      "source_type": "x_manual",
+      "account_handle": "namer",
+      "account_role": "NARRATIVE_NAMER",
+      "universe_tier": "CORE",
+      "monitor_priority": "P0",
+      "occurred_at": "2024-01-01T00:00:00Z",
+      "text": "I call this LabelX",
+      "signal_type": "NEW_TERM",
+      "evidence_phase": "FORMATION"
+    },
+    {
+      "event_id": "snf-2",
+      "platform": "x",
+      "source_type": "x_manual",
+      "account_handle": "adopter",
+      "account_role": "EXPERT_VALIDATOR",
+      "universe_tier": "CORE",
+      "monitor_priority": "P0",
+      "occurred_at": "2024-01-01T06:00:00Z",
+      "text": "LabelX is useful",
+      "signal_type": "NEW_TERM",
+      "evidence_phase": "FORMATION"
+    },
+    {
+      "event_id": "snf-3",
+      "platform": "github",
+      "source_type": "REPO",
+      "occurred_at": "2024-01-01T12:00:00Z",
+      "text": "labelx-tools",
+      "evidence_phase": "FORMATION"
+    }
+  ],
+  "notes": []
+}
